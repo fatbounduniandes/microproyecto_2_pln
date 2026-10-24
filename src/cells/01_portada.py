@@ -32,7 +32,8 @@
 # Usamos `codeparrot/codeparrot-clean` en modo streaming. Nos quedamos solo con archivos de
 # entre 1.000 y 2.000 caracteres, tomamos 8.000 ejemplos y los dividimos en 6.400 de
 # entrenamiento, 800 de validación y 800 de prueba. Todos los modelos usan el tokenizador de
-# SmolLM2 (49.152 tokens) y un contexto de 256 tokens.
+# SmolLM2 (49.152 tokens) y un contexto de 256 tokens. El filtro, el split y el contexto son los
+# que exige la guía del proyecto.
 #
 # ### Evaluación
 #
@@ -43,5 +44,6 @@
 # ### Entorno
 #
 # El notebook corre completo en Google Colab con GPU L4. Para el modelo de 360M usamos
-# precisión mixta, acumulación de gradientes y gradient checkpointing, y vamos liberando la
-# memoria de la GPU entre un modelo y el siguiente.
+# precisión mixta, acumulación de gradientes y gradient checkpointing, que es la estrategia de
+# memoria que recomienda el personal del curso. Entre un modelo y el siguiente liberamos la
+# memoria de la GPU.

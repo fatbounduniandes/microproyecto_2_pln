@@ -1,16 +1,18 @@
 # %% [markdown]
 # ## 2. Librerías
 #
-# Dejamos listo el entorno de ejecución antes de tocar los datos.
+# Dejamos listo el entorno de ejecución antes de tocar los datos, siguiendo lo que pide la guía
+# del proyecto.
 
 # %% [markdown]
-# Instalamos las versiones de las librerías de Hugging Face que vamos a usar.
+# Instalamos las versiones de las librerías de Hugging Face que se usan en el proyecto.
 
 # %%
 !pip install -q "transformers>=4.44,<5" "datasets>=2.20,<4" "accelerate>=0.33"
 
 # %% [markdown]
-# Importamos lo necesario y comprobamos las versiones cargadas.
+# Importamos lo necesario y comprobamos las versiones cargadas; `ast` lo usaremos para la
+# validación sintáctica que pide la guía.
 
 # %%
 import ast
@@ -46,7 +48,8 @@ print("datasets:", datasets.__version__)
 print("numpy:", np.__version__)
 
 # %% [markdown]
-# Configuramos la GPU, la precisión mixta, las constantes del proyecto y la carpeta de checkpoints.
+# Configuramos la GPU, la precisión mixta, las constantes que fija el enunciado (tokenizador
+# SmolLM2, contexto 256 y batch efectivo 16) y la carpeta de checkpoints.
 
 # %%
 SEED = 42
@@ -104,7 +107,8 @@ else:
     print("HF_TOKEN: no definido")
 
 # %% [markdown]
-# Definimos la semilla y la función que libera la memoria de la GPU entre modelos.
+# Fijamos la semilla para que los resultados sean reproducibles y creamos la función que libera
+# la GPU entre modelos, como indica el protocolo de checkpoints.
 
 # %%
 def fijar_semilla(seed=SEED):

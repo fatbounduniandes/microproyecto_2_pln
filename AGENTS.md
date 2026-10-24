@@ -6,7 +6,7 @@ Cualquier agente o persona que modifique el repositorio debe leerlo antes de emp
 silencio: se marca como reemplazada y se agrega una nueva.
 
 - **Curso:** Modelos Avanzados para el Procesamiento de Lenguaje Natural (MAPLN) — Maestría en IA.
-- **Repositorio:** `fatbounduniandes/microproyecto_2_pln` (privado).
+- **Repositorio:** `fatbounduniandes/microproyecto_2_pln` (público desde 2026-10-24, ver D-017).
 - **Rama principal:** `main`.
 - **Última actualización de esta bitácora:** 2026-10-24.
 
@@ -63,7 +63,10 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** el notebook debe detectar `torch.cuda.is_bf16_supported()` y degradar a
   fp16 + `GradScaler` en T4 sin cambios de código.
 
-### D-003 · 2026-10-24 · Sincronización vía GitHub privado (HTTPS + `gh`)
+### D-003 · 2026-10-24 · Sincronización vía GitHub con HTTPS + `gh`
+
+> Reemplazada parcialmente por D-017: el repositorio pasó de privado a público.
+
 - **Decisión:** Único mecanismo de sync: `git push` / `git pull` contra
   `https://github.com/fatbounduniandes/microproyecto_2_pln.git`.
 - **Motivo:** el cliente `gh` ya está autenticado en WSL con scope `repo`; el remoto SSH
@@ -220,6 +223,15 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** `drive.mount()` se llama directo, sin *fallback* local: el notebook asume
   Colab (requisito del enunciado). Las funciones tienen parámetros con valor por defecto
   simples y nombres largos en español.
+
+### D-017 · 2026-10-24 · El repositorio pasa a público
+- **Decisión:** `fatbounduniandes/microproyecto_2_pln` queda público. Se mantiene el mismo
+  remoto HTTPS y el mismo flujo de `push` bajo autorización (D-014).
+- **Motivo:** Colab rechazaba el clonado del repositorio privado (solo veía repositorios
+  públicos) y eso bloqueaba la ejecución del notebook.
+- **Consecuencia:** cualquier persona puede leer el repo; no hay secretos versionados porque el
+  `HF_TOKEN` se toma del entorno (D-015) y los checkpoints viven en Drive (D-008). El entregable
+  final igual va por Drive con permiso de lector.
 
 ---
 
