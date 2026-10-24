@@ -44,8 +44,8 @@ print("Archivos medidos:", len(longitudes))
 print("Tiempo:", round(time.time() - inicio, 1), "segundos")
 
 # %% [markdown]
-# Graficamos la distribución recortada a 4.000 caracteres y contamos cuántos archivos caen en el
-# rango que pide el enunciado.
+# Graficamos la distribución completa y contamos cuántos archivos caen en el rango que pide el
+# enunciado.
 
 # %%
 dentro_rango = 0
@@ -62,11 +62,10 @@ print("Mediana:", ordenadas[len(ordenadas) // 2])
 print("Maximo:", ordenadas[-1])
 
 plt.figure(figsize=(8, 4))
-plt.hist(longitudes, bins=60, range=(0, 4000))
+plt.hist(longitudes, bins=60)
 plt.axvline(MIN_CHARS, color="red", linestyle="--")
 plt.axvline(MAX_CHARS, color="red", linestyle="--")
 plt.title("Longitud de los archivos de codeparrot-clean")
 plt.xlabel("caracteres")
 plt.ylabel("cantidad de archivos")
-plt.xlim(0, 4000)
 plt.show()
