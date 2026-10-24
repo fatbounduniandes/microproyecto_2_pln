@@ -207,6 +207,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** `huggingface_hub` lo toma solo del entorno. Si no existe, las descargas
   públicas funcionan igual, con límites de tasa más estrictos.
 
+### D-016 · 2026-10-24 · Estilo de programación súper básico
+- **Decisión:** el notebook se escribe con lo mínimo indispensable de Python: `for` e `if`
+  explícitos, funciones cortas sin anotaciones de tipo, rutas como texto (`str`) en vez de
+  `pathlib`, sin lambdas, sin decoradores propios, sin clases auxiliares y sin comprensiones
+  de lista anidadas. Se prefieren varias líneas claras a una línea ingeniosa.
+- **Motivo:** el código debe parecer escrito por un estudiante y poder explicarse línea por
+  línea, sin construcciones que oculten la lógica del pipeline.
+- **Alternativas descartadas:** `pathlib`, helpers genéricos y estilo funcional (más elegante,
+  pero opaco para sustentar); `try/except` defensivos alrededor de todo (agregan ramas que no
+  aportan al alcance).
+- **Consecuencia:** `drive.mount()` se llama directo, sin *fallback* local: el notebook asume
+  Colab (requisito del enunciado). Las funciones tienen parámetros con valor por defecto
+  simples y nombres largos en español.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -288,6 +302,9 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - Cada celda imprime un resumen breve de lo que produjo (shapes, conteos, rutas, tiempo).
 - Semillas fijas antes de cualquier operación aleatoria (D-010).
 - **Código sin comentarios ni docstrings** (D-013): la explicación va en el markdown.
+- **Estilo básico** (D-016): `for` y `if` explícitos, sin list comprehensions anidadas, sin
+  lambdas, sin decoradores propios ni clases auxiliares; rutas como `str`, sin `pathlib`; sin
+  anotaciones de tipo; nombres de variables largos y obvios.
 
 ---
 

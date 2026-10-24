@@ -15,25 +15,23 @@
 # %%
 import ast
 import gc
-import json
 import math
 import os
 import random
-import re
 import time
 import warnings
-from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import datasets
 import transformers
 from datasets import load_dataset
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from google.colab import drive
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
@@ -42,10 +40,10 @@ warnings.filterwarnings("ignore")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 print("Entorno cargado")
-print(f"  torch        : {torch.__version__}")
-print(f"  transformers : {transformers.__version__}")
-print(f"  datasets     : {datasets.__version__}")
-print(f"  numpy        : {np.__version__}")
+print("torch:", torch.__version__)
+print("transformers:", transformers.__version__)
+print("datasets:", datasets.__version__)
+print("numpy:", np.__version__)
 
 # %% [markdown]
 # Configuramos la GPU, la precisión mixta, las constantes del proyecto y la carpeta de checkpoints.
@@ -55,21 +53,25 @@ SEED = 42
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 USE_BF16 = DEVICE == "cuda" and torch.cuda.is_bf16_supported()
-AMP_DTYPE = torch.bfloat16 if USE_BF16 else torch.float16
-USE_SCALER = DEVICE == "cuda" and not USE_BF16
+
+if USE_BF16:
+    AMP_DTYPE = torch.bfloat16
+    NOMBRE_AMP = "bfloat16"
+    USE_SCALER = False
+else:
+    AMP_DTYPE = torch.float16
+    NOMBRE_AMP = "float16"
+    USE_SCALER = True
 
 if DEVICE == "cuda":
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
     props = torch.cuda.get_device_properties(0)
-    print(f"GPU        : {props.name}")
-    print(f"VRAM       : {props.total_memory / 1024**3:.1f} GB")
-    print(f"Capacidad  : sm_{props.major}{props.minor}")
+    print("GPU:", props.name)
+    print("VRAM:", round(props.total_memory / 1024**3, 1), "GB")
 else:
     print("ADVERTENCIA: no hay GPU, el entrenamiento será muy lento")
 
-print(f"AMP        : {str(AMP_DTYPE).replace('torch.', '')}")
-print(f"GradScaler : {USE_SCALER}")
+print("AMP:", NOMBRE_AMP)
+print("GradScaler:", USE_SCALER)
 
 SMOL_135M = "HuggingFaceTB/SmolLM2-135M"
 SMOL_360M = "HuggingFaceTB/SmolLM2-360M"
@@ -79,49 +81,48 @@ CTX = 256
 VOCAB_SIZE = 49152
 EOS_TOKEN = "<|endoftext|>"
 
-MIN_CHARS, MAX_CHARS = 1000, 2000
+MIN_CHARS = 1000
+MAX_CHARS = 2000
 N_TOTAL = 8000
-N_TRAIN, N_VAL, N_TEST = 6400, 800, 800
+N_TRAIN = 6400
+N_VAL = 800
+N_TEST = 800
 
 BATCH_EFECTIVO = 16
 CLIP_GRAD_NORM = 1.0
 
-try:
-    from google.colab import drive
+drive.mount("/content/drive")
 
-    drive.mount("/content/drive")
-    DRIVE_DIR = Path("/content/drive/MyDrive/microproyecto_2")
-except Exception:
-    DRIVE_DIR = Path("/content/microproyecto_2")
+DRIVE_DIR = "/content/drive/MyDrive/microproyecto_2"
+os.makedirs(DRIVE_DIR, exist_ok=True)
 
-DRIVE_DIR.mkdir(parents=True, exist_ok=True)
-print(f"Checkpoints: {DRIVE_DIR}")
-print(f"HF_TOKEN   : {'definido' if os.environ.get('HF_TOKEN') else 'no definido'}")
+print("Checkpoints:", DRIVE_DIR)
+
+if "HF_TOKEN" in os.environ:
+    print("HF_TOKEN: definido")
+else:
+    print("HF_TOKEN: no definido")
 
 # %% [markdown]
 # Definimos la semilla y la función que libera la memoria de la GPU entre modelos.
 
 # %%
-def fijar_semilla(seed: int = SEED) -> None:
+def fijar_semilla(seed=SEED):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
-def liberar_vram_total(model=None, optimizer=None) -> None:
-    if model is not None:
-        del model
-    if optimizer is not None:
-        del optimizer
+def liberar_vram_total(modelo=None, optimizador=None):
+    if modelo is not None:
+        del modelo
+    if optimizador is not None:
+        del optimizador
     gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
-        torch.cuda.reset_peak_memory_stats()
+    torch.cuda.empty_cache()
 
 
 fijar_semilla()
-print(f"Semilla: {SEED}")
+print("Semilla:", SEED)
 print("Configuración lista")
