@@ -37,6 +37,7 @@ entrega_microproyecto_2/
 *.nbconvert.ipynb
 *_ejecutado.ipynb
 *.tmp.ipynb
+resultados/
 
 # --- Python ---
 __pycache__/

@@ -7,7 +7,7 @@ solo se hacen cuando él lo pide.
 
 - [x] **Fase 1 — Repositorio y base** (no va en el notebook)
 - [x] **Fase 2 — Portada y librerías** (secciones 1 y 2)
-- [ ] **Fase 3 — Datos y exploración** (sección 3) — escrita, falta correrla en Colab
+- [x] **Fase 3 — Datos y exploración** (sección 3)
 - [ ] **Fase 4 — Preprocesamiento** (sección 4)
 - [ ] **Fase 5 — Split train/val/test** (sección 5)
 - [ ] **Fase 6 — Modelo desde cero** (sección 6)
@@ -36,7 +36,9 @@ solo se hacen cuando él lo pide.
 - Carga de `codeparrot/codeparrot-clean` en streaming.
 - Inspección de columnas y gráfica de longitudes.
 - **Lista cuando:** se imprimen ejemplos reales y la distribución de longitudes.
-- **Estado:** escrita, pendiente de ejecutar en Colab.
+- **Resultados:** 11 columnas; 2.000 archivos medidos en 1,6 s; **399 de 2.000 (19,9 %)** caen
+  en el rango 1.000–2.000 caracteres. Proyectando, hacen falta ~40.000 archivos para juntar los
+  8.000 del enunciado.
 
 ### Fase 4 — Preprocesamiento
 - Filtro de 1.000 a 2.000 caracteres.

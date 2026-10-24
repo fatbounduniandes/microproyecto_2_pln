@@ -242,6 +242,22 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** una descarga menos (se reutiliza el ejemplo) y ninguna dependencia del
   objeto de características del dataset.
 
+### D-019 · 2026-10-24 · `resultados/` guarda notebooks ejecutados y no se versiona
+- **Decisión:** los notebooks descargados desde Colab con sus salidas se guardan en
+  `resultados/` (ignorado por git) y se usan como evidencia para revisar cada fase.
+- **Motivo:** permiten leer las salidas reales sin contaminar el repo con copias ejecutadas ni
+  duplicar el notebook entregable, que se regenera desde `src/cells/`.
+- **Consecuencia:** el notebook oficial sigue siendo `notebook.ipynb`; la copia ejecutada que se
+  entregue se genera al final (Fase 12).
+
+### D-020 · 2026-10-24 · Histograma recortado y percentiles
+- **Decisión:** el histograma de longitudes usa `range=(0, 4000)` y se imprimen mínimo, mediana
+  y máximo.
+- **Motivo:** la cola larga de archivos gigantes aplastaba toda la distribución en una sola
+  barra y no se veía la zona de interés (1.000–2.000 caracteres).
+- **Consecuencia:** la gráfica se lee, y los percentiles dan contexto de la cola sin necesidad de
+  otra figura.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -337,8 +353,8 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] `requirements-colab.txt` y `build_notebook.py` (D-012).
 - [x] Fase 1 completada: repo, bitácora y `FASES.md`.
 - [x] Fase 2 validada: portada y librerías corren en Colab.
-- [ ] Fase 3: sección 3 escrita (streaming + exploración), pendiente de correr en Colab.
-- [ ] Fases 4–10: secciones 4 a 10 del notebook.
+- [x] Fase 3 validada en Colab: 11 columnas, 19,9 % de archivos en el rango 1.000–2.000.
+- [ ] Fase 4: filtro, tokenización SmolLM2 y empaquetado en bloques de 256.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 
