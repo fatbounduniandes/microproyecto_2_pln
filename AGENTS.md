@@ -258,6 +258,24 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** los percentiles impresos (mínimo, mediana, máximo) dan el contexto de la cola
   que la vista recortada oculta.
 
+### D-021 · 2026-10-24 · Exploración sobre una muestra en memoria
+- **Decisión:** la celda de medición guarda los 2.000 ejemplos completos en `muestra` y deriva
+  `longitudes` de ahí; todos los análisis posteriores (conteos, licencias, repos, duplicados)
+  usan esa lista y no vuelven a recorrer el stream.
+- **Motivo:** un solo recorrido de streaming (~2 s) y coherencia: todas las métricas se calculan
+  sobre exactamente los mismos 2.000 archivos.
+- **Consecuencia:** la muestra ocupa pocos MB en RAM; no se cachea en disco ni en Drive.
+
+### D-022 · 2026-10-24 · La exploración no cambia el filtro ni el split
+- **Decisión:** licencias, repos repetidos y duplicados por `hash` se reportan como hallazgos,
+  pero el filtro (1.000–2.000 caracteres) y el split 6.400/800/800 se mantienen tal como los
+  exige el enunciado.
+- **Motivo:** si los archivos se concentran en pocos repos, un split aleatorio puede dejar el
+  mismo proyecto en train y en test. Es un límite del protocolo, no algo que podamos corregir
+  sin incumplirlo.
+- **Consecuencia:** el hallazgo se discute en las conclusiones como posible fuga de información,
+  junto con los duplicados detectados por `hash`.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -354,6 +372,7 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 1 completada: repo, bitácora y `FASES.md`.
 - [x] Fase 2 validada: portada y librerías corren en Colab.
 - [x] Fase 3 validada en Colab: 11 columnas, 19,9 % de archivos en el rango 1.000–2.000.
+- [ ] Fase 3 ampliada (tipos, licencias, repos, duplicados, proyección): pendiente de correr.
 - [ ] Fase 4: filtro, tokenización SmolLM2 y empaquetado en bloques de 256.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.

@@ -34,11 +34,13 @@ solo se hacen cuando él lo pide.
 
 ### Fase 3 — Datos y exploración
 - Carga de `codeparrot/codeparrot-clean` en streaming.
-- Inspección de columnas y gráfica de longitudes.
+- Inspección de columnas, tipos y valores de ejemplo; longitudes con dos histogramas.
+- Exploración ampliada: licencias, repos repetidos, duplicados por `hash` y proyección de
+  archivos necesarios para llegar a 8.000.
 - **Lista cuando:** se imprimen ejemplos reales y la distribución de longitudes.
-- **Resultados:** 11 columnas; 2.000 archivos medidos en 1,6 s; **399 de 2.000 (19,9 %)** caen
-  en el rango 1.000–2.000 caracteres. Proyectando, hacen falta ~40.000 archivos para juntar los
-  8.000 del enunciado.
+- **Resultados base:** 11 columnas; 2.000 archivos medidos en 1,6 s; **399 de 2.000 (19,9 %)**
+  caen en el rango 1.000–2.000 caracteres, así que hacen falta ~40.000 archivos revisados.
+- **Ampliación:** escrita, pendiente de correr en Colab.
 
 ### Fase 4 — Preprocesamiento
 - Filtro de 1.000 a 2.000 caracteres.
