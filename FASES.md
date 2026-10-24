@@ -37,10 +37,13 @@ solo se hacen cuando él lo pide.
 - Inspección de columnas, tipos y valores de ejemplo; longitudes con dos histogramas.
 - Exploración ampliada: licencias, repos repetidos, duplicados por `hash` y proyección de
   archivos necesarios para llegar a 8.000.
-- **Lista cuando:** se imprimen ejemplos reales y la distribución de longitudes.
-- **Resultados base:** 11 columnas; 2.000 archivos medidos en 1,6 s; **399 de 2.000 (19,9 %)**
-  caen en el rango 1.000–2.000 caracteres, así que hacen falta ~40.000 archivos revisados.
-- **Ampliación:** escrita, pendiente de correr en Colab.
+- **Lista cuando:** se imprimen ejemplos reales y la distribución de longitudes, y Jean aprueba
+  el cierre de la fase.
+- **Resultados base:** 11 columnas; 2.000 archivos medidos en 1,4 s; **399 de 2.000 (19,9 %)**
+  caen en el rango 1.000–2.000 caracteres, así que hacen falta ~40.100 archivos revisados.
+- **Hallazgos:** sin vacíos, nulos ni duplicados; 1.855 repos distintos; licencias mayormente
+  permisivas; cola de longitudes muy larga (mediana 4.733, máximo 456.237).
+- **Pendiente:** las conclusiones de la fase las redacta Jean.
 
 ### Fase 4 — Preprocesamiento
 - Filtro de 1.000 a 2.000 caracteres.

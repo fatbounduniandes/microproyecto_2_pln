@@ -270,11 +270,12 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Decisión:** licencias, repos repetidos y duplicados por `hash` se reportan como hallazgos,
   pero el filtro (1.000–2.000 caracteres) y el split 6.400/800/800 se mantienen tal como los
   exige el enunciado.
-- **Motivo:** si los archivos se concentran en pocos repos, un split aleatorio puede dejar el
-  mismo proyecto en train y en test. Es un límite del protocolo, no algo que podamos corregir
-  sin incumplirlo.
-- **Consecuencia:** el hallazgo se discute en las conclusiones como posible fuga de información,
-  junto con los duplicados detectados por `hash`.
+- **Motivo:** se revisó la concentración de repos por si un split aleatorio dejaba el mismo
+  proyecto en train y en test. Es un límite del protocolo, no algo que podamos corregir sin
+  incumplirlo.
+- **Consecuencia:** en la muestra de 2.000 archivos salieron **1.855 repos distintos** (máximo 5
+  archivos de un mismo repo) y **0 duplicados por `hash`**, así que el riesgo de fuga es bajo y no
+  hay nada que corregir en el split.
 
 ### D-023 · 2026-10-24 · El límite inferior de 1.000 casi no descarta archivos
 - **Decisión:** la comparación de muestras usa el archivo **más corto de la muestra** (no uno
@@ -382,7 +383,8 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 1 completada: repo, bitácora y `FASES.md`.
 - [x] Fase 2 validada: portada y librerías corren en Colab.
 - [x] Fase 3 validada en Colab: 11 columnas, 19,9 % de archivos en el rango 1.000–2.000.
-- [ ] Fase 3 ampliada (tipos, licencias, repos, duplicados, proyección): pendiente de correr.
+- [x] Fase 3 ampliada corrida: sin nulos ni duplicados; 1.855 repos distintos.
+- [ ] Fase 3 cierre: Jean redacta las conclusiones de la exploración.
 - [ ] Fase 4: filtro, tokenización SmolLM2 y empaquetado en bloques de 256.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
