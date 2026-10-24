@@ -296,6 +296,16 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** se descarta el resto de tokens que no completa un bloque de 256 (`buffer`
   final); así no hay padding en ningún tensor y la PPL no necesita máscaras.
 
+### D-025 · 2026-10-24 · Split aleatorio con semilla, no por orden del stream
+- **Decisión:** antes de partir los 8.000 textos se mezclan con `SEED` y luego se cortan
+  6.400 / 800 / 800. Los tokens se reordenan con el mismo índice para que texto y tokens queden
+  alineados.
+- **Motivo:** el stream entrega archivos en un orden que puede agrupar repos o épocas; un corte
+  por posición dejaría train con unos proyectos y test con otros. Mezclar con semilla fija
+  reparte el sesgo y mantiene la reproducibilidad (D-010).
+- **Consecuencia:** se verifican solapamientos con `set` sobre los textos de las tres partes; el
+  orden mezclado se usa también en las fases de evaluación y generación.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -394,8 +404,9 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 3 validada en Colab: 11 columnas, 19,9 % de archivos en el rango 1.000–2.000.
 - [x] Fase 3 ampliada corrida: sin nulos ni duplicados; 1.855 repos distintos.
 - [ ] Fase 3 cierre: Jean redacta las conclusiones de la exploración.
-- [ ] Fase 4: sección 4 escrita (filtro, tokenización y empaquetado), pendiente de correr.
-- [ ] Fase 5: split 6400/800/800 y empaquetado por split.
+- [x] Fase 4 validada en Colab: 8.000 textos, 3.460.082 tokens.
+- [ ] Fase 5: sección 5 escrita (split + empaquetado), pendiente de correr.
+- [ ] Fase 6: modelo GPT desde cero.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 

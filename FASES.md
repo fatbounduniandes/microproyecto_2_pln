@@ -53,8 +53,11 @@ solo se hacen cuando él lo pide.
 - **Estado:** escrita, pendiente de ejecutar en Colab.
 
 ### Fase 5 — Split train/validación/prueba
-- 6.400 / 800 / 800 sin solapamiento.
-- **Lista cuando:** los tres tamaños cuadran y se verifica que no haya ejemplos repetidos.
+- Mezcla con semilla fija y corte 6.400 / 800 / 800.
+- Empaquetado por split en bloques de 256 y tensores `X_train`, `X_val`, `X_test`.
+- Verificación de solapamiento y de tokens descartados.
+- **Lista cuando:** los tres tamaños cuadran, no hay textos repetidos y todas las formas son `(N, 256)`.
+- **Estado:** escrita, pendiente de ejecutar en Colab.
 
 ### Fase 6 — Modelo desde cero
 - GPT decoder-only en PyTorch puro (atención multi-cabeza, MLP, LayerNorm, embeddings).
