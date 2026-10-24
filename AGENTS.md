@@ -233,6 +233,15 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   `HF_TOKEN` se toma del entorno (D-015) y los checkpoints viven en Drive (D-008). El entregable
   final igual va por Drive con permiso de lector.
 
+### D-018 · 2026-10-24 · Las columnas se leen del primer ejemplo, no de `features`
+- **Decisión:** para listar las columnas del dataset en streaming se usa
+  `list(ejemplo.keys())` sobre el primer elemento, y ese mismo `ejemplo` se reutiliza para la
+  inspección. No se usa `dataset.features`.
+- **Motivo:** en la versión actual de `datasets`, `IterableDataset.features` es `None` en modo
+  streaming y lanzaba `AttributeError: 'NoneType' object has no attribute 'keys'` en Colab.
+- **Consecuencia:** una descarga menos (se reutiliza el ejemplo) y ninguna dependencia del
+  objeto de características del dataset.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)

@@ -7,20 +7,19 @@
 # son los archivos, porque el enunciado solo acepta los que tienen entre 1.000 y 2.000 caracteres.
 
 # %% [markdown]
-# Cargamos el dataset en streaming y revisamos qué columnas trae.
+# Cargamos el dataset en streaming y miramos qué columnas trae.
 
 # %%
 dataset = load_dataset("codeparrot/codeparrot-clean", split="train", streaming=True)
+ejemplo = next(iter(dataset))
 
 print(dataset)
-print("Columnas:", list(dataset.features.keys()))
+print("Columnas:", list(ejemplo.keys()))
 
 # %% [markdown]
 # Mostramos un archivo de ejemplo para ver cómo viene el campo `content`.
 
 # %%
-ejemplo = next(iter(dataset))
-
 print("repo:", ejemplo["repo_name"])
 print("archivo:", ejemplo["path"])
 print("caracteres:", len(ejemplo["content"]))
