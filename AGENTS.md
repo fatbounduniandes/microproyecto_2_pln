@@ -1,0 +1,249 @@
+# AGENTS.md — Bitácora de decisiones del Microproyecto 2
+
+Este archivo es la **fuente única de verdad sobre las decisiones de ingeniería** del proyecto.
+Cualquier agente o persona que modifique el repositorio debe leerlo antes de empezar y
+**registrar aquí toda decisión nueva** (ver §9). No se cambia una decisión existente en
+silencio: se marca como reemplazada y se agrega una nueva.
+
+- **Curso:** Modelos Avanzados para el Procesamiento de Lenguaje Natural (MAPLN) — Maestría en IA.
+- **Repositorio:** `fatbounduniandes/microproyecto_2_pln` (privado).
+- **Rama principal:** `main`.
+- **Última actualización de esta bitácora:** 2026-10-24.
+
+---
+
+## 1. Fuentes de verdad
+
+| Documento | Ruta | Uso |
+| :--- | :--- | :--- |
+| Especificación oficial | `instrucciones_proyecto/especificaciones_y_ejecuci_n_del_microproyecto_2.md` | Requisitos obligatorios, estructura del notebook, entregables |
+| Anexo técnico GPU | `instrucciones_proyecto/gu_a_t_cnica_de_optimizaci_n_de_memoria_gpu_anexo.md` | AMP, grad accumulation, gradient checkpointing, liberación de VRAM |
+| Decisiones de ingeniería | `AGENTS.md` (este archivo) | Cómo y por qué se implementa |
+
+Ante conflicto entre este archivo y la especificación, **gana la especificación**. Si una
+decisión de aquí la contradice, es un error y debe corregirse.
+
+---
+
+## 2. Entorno de trabajo
+
+| Rol | Dónde | Qué se hace ahí |
+| :--- | :--- | :--- |
+| Autoría / desarrollo | **WSL2 (Ubuntu 24.04)** sobre `/mnt/d/...` | Escribir celdas, generar el notebook, revisar diffs, git |
+| Ejecución GPU | **Google Colab Pro** (runtime L4 / A100 / T4) | Entrenamiento, evaluación, generación, salida final |
+| Almacenamiento de artefactos | **Google Drive** (montado en Colab) | Checkpoints y `.zip` de entrega |
+
+Estado verificado de WSL: `python3 3.12.3`, sin `pip`, sin `torch`, sin `transformers`,
+sin `nvidia-smi` (no hay GPU). **WSL no ejecuta el notebook.**
+
+---
+
+## 3. Decisiones (registro ADR)
+
+Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · consecuencias`.
+
+### D-001 · 2026-10-24 · Entorno híbrido WSL (autoría) + Colab Pro (ejecución)
+- **Decisión:** El notebook se escribe y versiona en WSL; se ejecuta únicamente en Colab Pro.
+- **Motivo:** WSL no tiene GPU ni stack de PyTorch; instalar torch CPU (~2.5 GB) allí no aporta,
+  porque el entregable exige ejecución con GPU y el cuello de botella real es el entrenamiento.
+- **Descartado:** correr todo en WSL-CPU (horas por época, imposible para 360M); desarrollar
+  directamente en Colab (pierdes historial, diffs y control de versiones ante desconexiones).
+- **Consecuencia:** la iteración de código es local y rápida; toda validación de ejecución
+  ocurre en Colab (primero T4, luego L4).
+
+### D-002 · 2026-10-24 · GPU objetivo: **L4** para el run final, T4 para smoke tests
+- **Decisión:** Smoke test en **T4**; corrida final en **L4**; **A100** solo como plan B.
+  **No** se usa TPU (v5e/v6e) ni High-RAM.
+- **Motivo (costo/beneficio):** L4 tiene ~24 GB, bf16 nativo y consume ~1/3 de unidades/hora
+  frente a A100; el full-finetuning de 360M con batch efectivo 16 cabe holgado. T4 (16 GB,
+  fp16) sirve para validar el pipeline pero es 2–3× más lento y no soporta bf16 real.
+- **Descartado:** TPU (el stack es PyTorch + HF, no XLA; el bucle autorregresivo propio y el
+  `Trainer` manual no son portables sin trabajo extra); High-RAM (irrelevante: `streaming=True`
+  y bloques de 256 tokens usan pocos GB de RAM).
+- **Consecuencia:** el notebook debe detectar `torch.cuda.is_bf16_supported()` y degradar a
+  fp16 + `GradScaler` en T4 sin cambios de código.
+
+### D-003 · 2026-10-24 · Sincronización vía GitHub privado (HTTPS + `gh`)
+- **Decisión:** Único mecanismo de sync: `git push` / `git pull` contra
+  `https://github.com/fatbounduniandes/microproyecto_2_pln.git`.
+- **Motivo:** el cliente `gh` ya está autenticado en WSL con scope `repo`; el remoto SSH
+  (`git@github.com:...`) falla con `Permission denied (publickey)` porque la llave
+  `~/.ssh/id_ed25519.pub` no está registrada en la cuenta de GitHub.
+- **Descartado:** subir el `.ipynb` a mano entre WSL y Colab (rompe trazabilidad y provoca
+  versiones divergentes); sync solo por Drive (sin historial ni diffs).
+- **Consecuencia:** en Colab, la primera celda clona el repo. Si más adelante se quiere SSH:
+  `gh auth refresh -h github.com -s admin:public_key && gh ssh-key add ~/.ssh/id_ed25519.pub`
+  y luego `git remote set-url origin git@github.com:fatbounduniandes/microproyecto_2_pln.git`.
+
+### D-004 · 2026-10-24 · El notebook es **autocontenido** (requisito duro)
+- **Decisión:** `notebook.ipynb` no importa módulos locales, no depende de `src/`, no ejecuta
+  `!git clone` de código propio ni `%run` de scripts. Todo el código vive inline en sus celdas.
+- **Motivo:** requisito explícito de "ejecutable de principio a fin (`Run All`)" y de entrega
+  como archivo único. Un evaluador que lo abra en Colab debe poder correrlo sin contexto extra.
+- **Descartado:** paquete `src/` importado desde el notebook (obliga a clonar, rompe el `Run All`
+  y hace frágil la entrega).
+- **Consecuencia:** la modularidad se logra **antes** de generar el notebook (§D-006); el
+  artefacto final es un único `.ipynb` con celdas en orden y con salidas visibles.
+
+### D-005 · 2026-10-24 · Los datos se cargan con streaming **en cada** `Run All`
+- **Decisión:** cada ejecución completa hace `load_dataset(..., streaming=True)` → filtro
+  `1000 ≤ len(content) ≤ 2000` → tomar 8.000 → split 6.400/800/800. **Sin caché de dataset
+  en Drive ni en disco.**
+- **Motivo:** la especificación exige `streaming=True`; cachear el dataset y recargarlo podría
+  interpretarse como incumplimiento, y el costo (~2–5 min) es aceptable frente al entrenamiento.
+- **Descartado:** persistir los 8.000 ejemplos tokenizados y saltarse el streaming (más rápido,
+  pero debilita el cumplimiento y la reproducibilidad del pipeline).
+- **Consecuencia:** el preprocesamiento debe ser determinista (semilla fija) y tolerar
+  desconexiones sin corromper el estado; ver D-007 para el reanudado.
+
+### D-006 · 2026-10-24 · Celdas fuente en `src/cells/` + `build_notebook.py` genera el `.ipynb`
+- **Decisión:** el código se escribe en archivos `.py` numerados (`src/cells/01_portada.py`, …),
+  y un script sin dependencias externas los ensambla en `notebook.ipynb`. **El `.ipynb` no se
+  edita a mano.**
+- **Motivo:** el JSON del notebook es ilegible en diffs y propenso a corrupción; escribir celdas
+  como texto permite revisar cambios, reordenar y regenerar sin tocar JSON. Garantiza que el
+  notebook quede autocontenido (D-004) por construcción.
+- **Descartado:** editar el `.ipynb` directamente (diffs ruidosos, riesgo de romper el JSON);
+  `jupytext` (dependencia adicional innecesaria); `nbformat` (se evita cualquier dependencia).
+- **Consecuencia:** única vía de cambio es `src/cells/` + `python3 build_notebook.py`. Si alguien
+  edita el notebook en Colab, ese cambio se pierde en la próxima regeneración: **prohibido**.
+
+### D-007 · 2026-10-24 · Reanudación idempotente de entrenamientos desde Drive
+- **Decisión:** cada fase de entrenamiento comprueba si su checkpoint existe en Drive; si existe,
+  lo carga y salta el entrenamiento (imprime un aviso claro). Si no, entrena y lo guarda.
+- **Motivo:** Colab desconecta sesiones y el plan gratuito/Pro tiene límites; repetir el
+  finetuning de 360M por una caída cuesta decenas de minutos.
+- **Descartado:** entrenar siempre desde cero (frágil); reanudar a mitad de época con estados de
+  optimizador (complejidad alta, beneficio marginal para 1 época).
+- **Consecuencia:** la corrida entregada se ejecuta **una vez** de punta a punta para producir
+  las salidas visibles; las re-ejecuciones posteriores serán rápidas y consistentes. El notebook
+  debe dejar explícito en la salida si entrenó o cargó checkpoint.
+
+### D-008 · 2026-10-24 · Higiene de repositorio (`.gitignore` + `.gitattributes`)
+- **Decisión:** se versiona **solo** lo pequeño y reproducible: notebook, celdas fuente, script
+  de build, documentación, requisitos. Se excluyen checkpoints, datasets, cachés, `.zip`,
+  secretos y configuración local del agente.
+- **Motivo:** GitHub rechaza archivos > 100 MB y los binarios no aportan trazabilidad; el
+  entregable pesado (checkpoints) vive en Drive.
+- **Consecuencia:** los checkpoints **no** se recuperan del repo; se regeneran en Colab o se
+  bajan de Drive si hiciera falta.
+
+### D-009 · 2026-10-24 · Nombres canónicos de artefactos
+- **Decisión:** `checkpoint_scratch.pt`, `checkpoint_smollm2_135m_ft/`,
+  `checkpoint_smollm2_360m_ft/` y `entrega_microproyecto_2.zip`, guardados en
+  `/content/drive/MyDrive/microproyecto_2/`.
+- **Motivo:** la especificación fija esos nombres exactos; centralizar la ruta evita
+  discrepancias entre celdas.
+- **Consecuencia:** una sola constante `DRIVE_DIR` en la celda de configuración; ninguna ruta
+  absoluta dispersa en el código.
+
+### D-010 · 2026-10-24 · Reproducibilidad
+- **Decisión:** `SEED = 42` global (`random`, `numpy`, `torch`, `torch.cuda`), split determinista
+  y submuestra de 200 ejemplos de test con su propia semilla fija.
+- **Motivo:** permite comparar las 5 configuraciones sobre exactamente los mismos datos y
+  regenerar la submuestra de evaluación sintáctica sin variaciones.
+- **Consecuencia:** fijar semilla antes de cargar datos, antes de inicializar cada modelo y antes
+  de muestrear el subconjunto de evaluación.
+
+---
+
+## 4. Reglas duras del proyecto (no negociables)
+
+Se listan aquí para que ningún agente las rompa por conveniencia:
+
+1. Exactamente **5 configuraciones**: scratch, 135M base, 135M FT, 360M base, 360M FT.
+2. Tokenizador **obligatorio** `HuggingFaceTB/SmolLM2-135M` (vocab 49.152) para **todos** los modelos.
+3. Contexto fijo de **256 tokens**, con empaquetado en bloques.
+4. Dataset único `codeparrot/codeparrot-clean` con `streaming=True`.
+5. Filtro `1000 ≤ len(content) ≤ 2000` y **exactamente 8.000** ejemplos → 6.400 / 800 / 800.
+6. Full finetuning al 100% de parámetros. **Prohibido LoRA/QLoRA.**
+7. **Prohibido** `model.generate()`, `pipeline()` o cualquier abstracción de generación:
+   bucle autorregresivo propio con `logits[:, -1, :]`, temperatura/top-k/top-p y `multinomial`/`argmax`.
+8. Perplejidad global: acumular `NLL × tokens_válidos` y dividir por el total de tokens;
+   **nunca** promediar PPL por lote. Excluir padding.
+9. Validez sintáctica con `ast.parse` sobre 200 ejemplos de test (submuestra con semilla).
+10. 10 secciones del notebook con los **títulos exactos** y en el orden de la especificación.
+11. Máximo un modelo en VRAM a la vez; `del` + `gc.collect()` + `torch.cuda.empty_cache()` entre fases.
+12. Entregable: `.zip` con notebook ejecutado (salidas visibles) + 3 checkpoints, público en Drive.
+
+---
+
+## 5. Flujo de trabajo
+
+```
+WSL: editar src/cells/*.py
+  └─> python3 build_notebook.py        # regenera notebook.ipynb
+  └─> git add -A && git commit && git push
+Colab: !git pull
+  └─> Runtime > Run All
+  └─> guarda checkpoints en Drive
+  └─> descarga/arma entrega_microproyecto_2.zip
+```
+
+### Fases
+| # | Fase | Entorno | Criterio de salida |
+| :-- | :--- | :--- | :--- |
+| 1 | Repo, `.gitignore`, bitácora | WSL | push en `main` |
+| 2 | Celdas 1–5 (portada, libs, datos, prepro, split) | WSL | pipeline determinista |
+| 3 | Smoke test (400 ejemplos, pocos steps) | Colab T4 | shapes, PPL y AST correctos |
+| 4 | Celda 6 (scratch) + celda 7 (finetuning) | WSL | checkpoints guardados |
+| 5 | Celdas 8–10 (eval, generación, conclusiones) | WSL | tabla comparativa completa |
+| 6 | `Run All` final | Colab L4 | notebook con salidas + `.zip` |
+
+### Regla de oro de Colab
+- No editar el notebook en Colab.
+- Antes de un run largo: `Runtime > Change runtime type > L4`, verificar
+  `torch.cuda.get_device_name(0)` y `torch.cuda.is_bf16_supported()`.
+- Para el run final: `Runtime > Factory reset runtime` para partir de VRAM limpia.
+
+---
+
+## 6. Estructura del repositorio
+
+```
+.
+├── AGENTS.md                  # esta bitácora
+├── README.md                  # descripción breve del proyecto
+├── instrucciones_proyecto/    # enunciado y anexo (no editar)
+├── src/cells/                 # celdas fuente numeradas (autoría)
+├── build_notebook.py          # ensambla notebook.ipynb
+├── notebook.ipynb             # ENTREGABLE generado (no editar a mano)
+└── requirements-colab.txt     # versiones fijadas para Colab
+```
+
+No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, cachés de HF,
+`.opencode/`, `.venv/`, secretos.
+
+---
+
+## 7. Convenciones de código
+
+- Python 3.10+ (el de Colab), `torch` + `transformers` + `datasets`; nada exótico.
+- Nombres en español para variables de dominio (`perdida`, `tokens_validos`) y en inglés para
+  API de PyTorch (`input_ids`, `logits`).
+- Constantes en mayúsculas al inicio de la celda de configuración.
+- Cada celda imprime un resumen breve de lo que produjo (shapes, conteos, rutas, tiempo).
+- Semillas fijas antes de cualquier operación aleatoria (D-010).
+- Comentarios en español, orientados a justificar decisiones, no a narrar lo obvio.
+
+---
+
+## 8. Estado actual
+
+- [x] `git init`, remoto `origin` configurado, rama `main`.
+- [x] `AGENTS.md`, `.gitignore`, `.gitattributes`.
+- [ ] `requirements-colab.txt`.
+- [ ] `build_notebook.py` + celdas 1–5.
+- [ ] Smoke test en Colab T4.
+- [ ] Entrenamientos y evaluación.
+- [ ] `Run All` final en L4 y entrega en Drive.
+
+---
+
+## 9. Cómo registrar una decisión nueva
+
+1. Agrega `### D-0NN · AAAA-MM-DD · Título corto` al final de §3 (no borres las anteriores).
+2. Incluye: **Decisión**, **Motivo**, **Alternativas descartadas**, **Consecuencia**.
+3. Si reemplaza una decisión previa, escribe en la vieja `> Reemplazada por D-0NN`.
+4. Actualiza §8 (estado) si corresponde.
+5. Commit aparte: `docs(agents): D-0NN <título>`.

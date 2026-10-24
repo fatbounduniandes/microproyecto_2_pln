@@ -1,0 +1,23 @@
+# Normaliza finales de línea (WSL ↔ Windows ↔ Colab)
+* text=auto eol=lf
+
+# Notebook: texto, diffs legibles
+*.ipynb text eol=lf
+*.md    text eol=lf
+*.py    text eol=lf
+*.txt   text eol=lf
+
+# Binarios: nunca normalizar ni generar diffs de texto
+*.pt         binary
+*.pth        binary
+*.bin        binary
+*.safetensors binary
+*.arrow      binary
+*.parquet    binary
+*.zip        binary
+*.png        binary
+*.jpg        binary
+*.pdf        binary
+
+# El notebook es un artefacto generado: no inflar estadísticas del repo
+notebook.ipynb linguist-generated=true

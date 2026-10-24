@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────
+# Microproyecto 2 — PLN
+# Se versiona solo código pequeño, texto y el notebook generado.
+# Los artefactos pesados (checkpoints, datasets, .zip) viven en Drive.
+# ─────────────────────────────────────────────────────────────
+
+# --- Checkpoints y pesos del modelo (regenerables en Colab) ---
+checkpoint_scratch.pt
+checkpoint_smollm2_135m_ft/
+checkpoint_smollm2_360m_ft/
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+
+# --- Datasets / caché de Hugging Face ---
+data/
+*.jsonl
+*.arrow
+*.parquet
+.cache/
+.cache-huggingface/
+hf_cache/
+~/.cache/huggingface/
+
+# --- Entregables empaquetados ---
+*.zip
+dist/
+entrega_microproyecto_2/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+*.nbconvert.ipynb
+*_ejecutado.ipynb
+*.tmp.ipynb
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.Python
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Entorno local del agente / editor ---
+.opencode/
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- Secretos y credenciales ---
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+token*
+kaggle.json
+gha-creds-*.json
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs y basura de ejecución ---
+*.log
+nohup.out
+drive/
+/content/
