@@ -39,7 +39,7 @@
 #
 # - Perplejidad sobre los 800 ejemplos de prueba.
 # - Porcentaje de código sintácticamente válido con `ast` en 200 ejemplos.
-# - Tres ejemplos generados por modelo con nuestro propio bucle autorregresivo.
+# - Tres ejemplos por cada modelo entrenado, con nuestro propio bucle autorregresivo.
 #
 # ### Entorno
 #

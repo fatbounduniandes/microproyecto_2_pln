@@ -89,7 +89,6 @@ SMOL_360M_REVISION = "f8027fd0eaeea54caa13c31d31b9fdc459c38b49"
 
 CTX = 256
 VOCAB_SIZE = 49152
-EOS_TOKEN = "<|endoftext|>"
 
 MIN_CHARS = 1000
 MAX_CHARS = 2000
@@ -123,7 +122,6 @@ def fijar_semilla(seed=SEED):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.use_deterministic_algorithms(True, warn_only=True)
@@ -135,7 +133,8 @@ def liberar_vram_total(modelo=None, optimizador=None):
     if optimizador is not None:
         del optimizador
     gc.collect()
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 fijar_semilla()

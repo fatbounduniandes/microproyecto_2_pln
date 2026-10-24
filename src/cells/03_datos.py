@@ -44,7 +44,6 @@ print(ejemplo["content"][:600])
 N_MUESTRA = 2000
 muestra = []
 
-inicio = time.time()
 for i, ejemplo in enumerate(dataset):
     if i == N_MUESTRA:
         break

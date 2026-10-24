@@ -3,7 +3,8 @@
 #
 # Aplicamos el filtro de longitud que pide el enunciado, tokenizamos con el tokenizador de
 # SmolLM2 y empacamos los tokens en bloques fijos de 256, que es el contexto que van a usar los
-# cinco modelos.
+# cinco modelos. El empaquetado definitivo se hace por split en la sección 5, para que ningún
+# bloque mezcle tokens de entrenamiento con tokens de prueba.
 
 # %% [markdown]
 # Cargamos el tokenizador de SmolLM2 con su revisión fija y revisamos su vocabulario.
@@ -36,7 +37,7 @@ print("Tiempo:", round(time.time() - inicio, 1), "segundos")
 if len(textos) == N_TOTAL:
     print("Se encontraron los", N_TOTAL, "archivos que pide el enunciado")
 else:
-    print("ADVERTENCIA: se esperaban", N_TOTAL, "archivos y se encontraron", len(textos))
+    print("Se esperaban", N_TOTAL, "archivos y se encontraron", len(textos))
 
 # %% [markdown]
 # Tokenizamos cada archivo y le agregamos el token de fin de texto.
@@ -82,6 +83,6 @@ bloques_prueba = empacar(ids_por_texto[:50], CTX)
 
 print("Bloques de prueba:", len(bloques_prueba))
 print("Largo de cada bloque:", len(bloques_prueba[0]))
-print("Bloques si se empacaran los 8.000 juntos:", total_tokens // CTX)
+print("Bloques aproximados con los 8.000 juntos:", total_tokens // CTX)
 print()
 print(tokenizer.decode(bloques_prueba[0][:80]))
