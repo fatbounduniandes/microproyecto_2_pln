@@ -1,12 +1,16 @@
 # %% [markdown]
 # ## 2. Librerías
 #
-# Instalamos las librerías de Hugging Face, importamos solo lo que vamos a usar y dejamos
-# lista la configuración del entorno: GPU, precisión mixta, semilla, constantes del proyecto
-# y la carpeta de Drive donde se guardan los checkpoints.
+# Dejamos listo el entorno de ejecución antes de tocar los datos.
+
+# %% [markdown]
+# Instalamos las versiones de las librerías de Hugging Face que vamos a usar.
 
 # %%
 !pip install -q "transformers>=4.44,<5" "datasets>=2.20,<4" "accelerate>=0.33"
+
+# %% [markdown]
+# Importamos lo necesario y comprobamos las versiones cargadas.
 
 # %%
 import ast
@@ -42,6 +46,9 @@ print(f"  torch        : {torch.__version__}")
 print(f"  transformers : {transformers.__version__}")
 print(f"  datasets     : {datasets.__version__}")
 print(f"  numpy        : {np.__version__}")
+
+# %% [markdown]
+# Configuramos la GPU, la precisión mixta, las constantes del proyecto y la carpeta de checkpoints.
 
 # %%
 SEED = 42
@@ -89,19 +96,10 @@ except Exception:
 
 DRIVE_DIR.mkdir(parents=True, exist_ok=True)
 print(f"Checkpoints: {DRIVE_DIR}")
+print(f"HF_TOKEN   : {'definido' if os.environ.get('HF_TOKEN') else 'no definido'}")
 
-try:
-    from google.colab import userdata
-    from huggingface_hub import login
-
-    _hf_token = userdata.get("HF_TOKEN")
-    if _hf_token:
-        login(_hf_token, add_to_git_credential=False)
-        print("HF_TOKEN   : cargado")
-    else:
-        print("HF_TOKEN   : no definido")
-except Exception:
-    print("HF_TOKEN   : no disponible")
+# %% [markdown]
+# Definimos la semilla y la función que libera la memoria de la GPU entre modelos.
 
 # %%
 def fijar_semilla(seed: int = SEED) -> None:

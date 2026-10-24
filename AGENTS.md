@@ -188,7 +188,8 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Alternativas descartadas:** markdown denso con referencias al anexo (se siente ajeno);
   comentarios línea a línea en el código (ruido y apariencia de plantilla).
 - **Consecuencia:** al escribir una celda nueva, primero el markdown explica qué se hace y
-  luego el código lo hace sin comentarios. Nombres de variables autoexplicativos.
+  luego el código lo hace sin comentarios. Nombres de variables autoexplicativos. Cada celda de
+  código lleva justo encima un markdown de **una sola frase** que anuncia lo que hace.
 
 ### D-014 · 2026-10-24 · Los `push` se hacen solo cuando Jean lo indica
 - **Decisión:** se puede trabajar y hacer commits locales, pero **ningún `git push`** se ejecuta
@@ -196,6 +197,15 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Motivo:** él revisa cada fase antes de publicarla y quiere controlar qué llega al remoto.
 - **Consecuencia:** al terminar una fase se reporta el estado y se espera la instrucción de
   subir. Si una fase se corrige, se puede reescribir el commit local antes de subir.
+
+### D-015 · 2026-10-24 · El token de Hugging Face viene del entorno de Colab
+- **Decisión:** no usar `userdata.get("HF_TOKEN")` ni `login()`. El notebook asume que
+  `HF_TOKEN` ya existe como variable de entorno en el runtime de Colab y solo reporta si está
+  definido.
+- **Motivo:** Jean ya lo tiene configurado en su entorno; pedirlo otra vez agrega código y
+  pasos manuales que el evaluador no necesita repetir.
+- **Consecuencia:** `huggingface_hub` lo toma solo del entorno. Si no existe, las descargas
+  públicas funcionan igual, con límites de tasa más estrictos.
 
 ---
 

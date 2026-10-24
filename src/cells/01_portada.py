@@ -13,9 +13,8 @@
 # ### Resumen
 #
 # En este microproyecto entrenamos modelos tipo GPT (Transformer decoder-only) para generar
-# código en Python. Es parecido a lo que hicimos en el Microproyecto 1: predecir el siguiente
-# elemento de una secuencia. Allá el modelo predecía el siguiente punto de un dibujo; acá
-# predice el siguiente token de un archivo de código.
+# código en Python. El modelo aprende a predecir el siguiente token de un archivo de código y,
+# con eso, puede continuar un fragmento que le demos como entrada.
 #
 # Comparamos cinco configuraciones para ver cuánto depende el resultado del tamaño del modelo
 # y de si se entrena desde cero o se parte de pesos ya preentrenados:
