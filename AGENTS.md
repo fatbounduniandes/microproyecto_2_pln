@@ -177,6 +177,26 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** antes de cada commit se corre `python3 build_notebook.py --check`; si falla,
   el notebook no corresponde a las celdas fuente y no debe subirse.
 
+### D-013 · 2026-10-24 · Estilo del notebook: markdown breve y código sin comentarios
+- **Decisión:** el markdown va en tono de estudiante, en primera persona del plural, con
+  párrafos cortos, listas y tablas simples; sin justificaciones teóricas extensas ni jerga
+  académica innecesaria. Las celdas de código **no llevan comentarios ni docstrings**: la
+  explicación vive en el markdown de la sección.
+- **Motivo:** el entregable lo firma el equipo y debe leerse como trabajo propio, no como
+  documentación generada. Además el código limpio se ve mejor y el markdown ya cumple la
+  función explicativa.
+- **Alternativas descartadas:** markdown denso con referencias al anexo (se siente ajeno);
+  comentarios línea a línea en el código (ruido y apariencia de plantilla).
+- **Consecuencia:** al escribir una celda nueva, primero el markdown explica qué se hace y
+  luego el código lo hace sin comentarios. Nombres de variables autoexplicativos.
+
+### D-014 · 2026-10-24 · Los `push` se hacen solo cuando Jean lo indica
+- **Decisión:** se puede trabajar y hacer commits locales, pero **ningún `git push`** se ejecuta
+  sin autorización explícita de Jean en el momento.
+- **Motivo:** él revisa cada fase antes de publicarla y quiere controlar qué llega al remoto.
+- **Consecuencia:** al terminar una fase se reporta el estado y se espera la instrucción de
+  subir. Si una fase se corrige, se puede reescribir el commit local antes de subir.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -235,6 +255,7 @@ Colab: !git pull
 ```
 .
 ├── AGENTS.md                  # esta bitácora
+├── FASES.md                   # checklist de fases (una a la vez)
 ├── README.md                  # descripción breve del proyecto
 ├── instrucciones_proyecto/    # enunciado y anexo (no editar)
 ├── src/cells/                 # celdas fuente numeradas (autoría)
@@ -256,7 +277,7 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - Constantes en mayúsculas al inicio de la celda de configuración.
 - Cada celda imprime un resumen breve de lo que produjo (shapes, conteos, rutas, tiempo).
 - Semillas fijas antes de cualquier operación aleatoria (D-010).
-- Comentarios en español, orientados a justificar decisiones, no a narrar lo obvio.
+- **Código sin comentarios ni docstrings** (D-013): la explicación va en el markdown.
 
 ---
 
@@ -266,11 +287,11 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] `AGENTS.md`, `.gitignore`, `.gitattributes`.
 - [x] Skills locales de OpenCode para tutoría y notebooks (D-011).
 - [x] `requirements-colab.txt` y `build_notebook.py` (D-012).
-- [x] Celdas 1–2: portada + librerías/configuración global.
-- [ ] Celdas 3–5 (datos, preprocesamiento, split).
-- [ ] Smoke test en Colab T4.
-- [ ] Entrenamientos y evaluación.
-- [ ] `Run All` final en L4 y entrega en Drive.
+- [x] Fase 1 completada: repo, bitácora y `FASES.md`.
+- [ ] Fase 2: portada y librerías (corregidas al estilo D-013, pendiente validar en Colab).
+- [ ] Fases 3–10: secciones 3 a 10 del notebook.
+- [ ] Fase 11: smoke test en Colab T4.
+- [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 
 ---
 

@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Microproyecto 2: Generación de Código con Transformers
 #
-# **Curso:** Modelos Avanzados para el Procesamiento de Lenguaje Natural (MAPLN)
+# **Curso:** Modelos Avanzados para el Procesamiento de Lenguaje Natural
 # **Equipo 4**
 # **Integrantes:** Juan Sebastián Páez Cortés, Julian David Parada Galvis, Luis Carlos Prada Socha, Jean Pierre Betancourt Padilla
 # **Fecha:** octubre de 2026
@@ -10,57 +10,39 @@
 #
 # ## 1. Portada e introducción
 #
-# ### 1.1 Resumen del proyecto
+# ### Resumen
 #
-# En el Microproyecto 1 se modeló una secuencia de trazos de un boceto
-# $(\Delta x_t, \Delta y_t, \text{pen\_state}_t)$ con una LSTM implementada desde cero.
-# Este microproyecto conserva la misma intuición —modelar una secuencia token a token— pero
-# cambia el dominio: ahora se modela **código fuente en Python**, usando la arquitectura
-# *decoder-only* de los Transformers, la misma familia de GPT.
+# En este microproyecto entrenamos modelos tipo GPT (Transformer decoder-only) para generar
+# código en Python. Es parecido a lo que hicimos en el Microproyecto 1: predecir el siguiente
+# elemento de una secuencia. Allá el modelo predecía el siguiente punto de un dibujo; acá
+# predice el siguiente token de un archivo de código.
 #
-# La tarea es autorregresiva: dado un prefijo de tokens, el modelo estima
-# $p(x_t \mid x_{<t})$ y se entrena minimizando la entropía cruzada. Se comparan **cinco
-# configuraciones** que aíslan el efecto de dos variables: el tamaño del modelo (135M vs. 360M)
-# y el tipo de entrenamiento (desde cero vs. *full finetuning* vs. pesos originales).
+# Comparamos cinco configuraciones para ver cuánto depende el resultado del tamaño del modelo
+# y de si se entrena desde cero o se parte de pesos ya preentrenados:
 #
-# **Pipeline de datos.** Se usa `codeparrot/codeparrot-clean` en modo `streaming=True`. Se
-# conservan únicamente archivos con `1000 <= len(content) <= 2000` caracteres, se extraen
-# exactamente 8.000 ejemplos y se dividen en 6.400 de entrenamiento, 800 de validación y 800 de
-# prueba. Todos los modelos comparten el tokenizador de `HuggingFaceTB/SmolLM2-135M`
-# (vocabulario de 49.152 tokens) y un contexto fijo de 256 tokens, con empaquetado en bloques.
+# | # | Configuración | Modelo | Entrenamiento |
+# | :-: | :--- | :--- | :--- |
+# | 1 | Desde cero | GPT decoder-only en PyTorch | 3 épocas desde pesos aleatorios |
+# | 2 | Baseline 135M | SmolLM2-135M | Sin entrenar |
+# | 3 | Finetuning 135M | SmolLM2-135M | Full finetuning, 1 época |
+# | 4 | Baseline 360M | SmolLM2-360M | Sin entrenar |
+# | 5 | Finetuning 360M | SmolLM2-360M | Full finetuning, 1 época |
 #
-# **Evaluación.** Tres frentes complementarios:
+# ### Datos
 #
-# 1. **Perplejidad global** sobre los 800 ejemplos de prueba, acumulando
-#    $-\log p$ por token válido y dividiendo una sola vez por el total de tokens (nunca
-#    promediando perplejidades por lote).
-# 2. **Validez sintáctica** con `ast.parse` sobre una submuestra reproducible de 200 ejemplos.
-# 3. **Generación cualitativa** mediante un bucle autorregresivo propio, sin `model.generate()`.
+# Usamos `codeparrot/codeparrot-clean` en modo streaming. Nos quedamos solo con archivos de
+# entre 1.000 y 2.000 caracteres, tomamos 8.000 ejemplos y los dividimos en 6.400 de
+# entrenamiento, 800 de validación y 800 de prueba. Todos los modelos usan el tokenizador de
+# SmolLM2 (49.152 tokens) y un contexto de 256 tokens.
 #
-# ### 1.2 Las cinco configuraciones
+# ### Evaluación
 #
-# | # | Configuración | Modelo / origen | Estado de los pesos | Entrenamiento | $lr$ | Épocas |
-# | :-: | :--- | :--- | :--- | :--- | :--- | :--- |
-# | 1 | Desde cero | GPT decoder-only en PyTorch puro | Aleatorios | 3 épocas sobre *train* | $3\times10^{-4}$ | 3 |
-# | 2 | Baseline 135M | `HuggingFaceTB/SmolLM2-135M` | Preentrenados | Ninguno (inferencia) | — | — |
-# | 3 | Finetuning 135M | `HuggingFaceTB/SmolLM2-135M` | Preentrenados | Full finetuning (100 %) | $5\times10^{-5}$ | 1 |
-# | 4 | Baseline 360M | `HuggingFaceTB/SmolLM2-360M` | Preentrenados | Ninguno (inferencia) | — | — |
-# | 5 | Finetuning 360M | `HuggingFaceTB/SmolLM2-360M` | Preentrenados | Full finetuning (100 %) | $3\times10^{-5}$ | 1 |
+# - Perplejidad sobre los 800 ejemplos de prueba.
+# - Porcentaje de código sintácticamente válido con `ast` en 200 ejemplos.
+# - Tres ejemplos generados por modelo con nuestro propio bucle autorregresivo.
 #
-# En todas las configuraciones el batch efectivo es 16. Queda terminantemente prohibido el uso de
-# LoRA/QLoRA: el finetuning actualiza el 100 % de los parámetros.
+# ### Entorno
 #
-# ### 1.3 Entorno de ejecución
-#
-# El notebook está pensado para ejecutarse de principio a fin (`Run All`) en **Google Colab Pro**
-# con GPU **NVIDIA L4** (~24 GB, `bfloat16` nativo); el código degrada automáticamente a `fp16`
-# con `GradScaler` en T4. El *full finetuning* de SmolLM2-360M se sostiene con la tríada del
-# anexo técnico: **AMP + acumulación de gradientes (micro-batch 2 × 8) + gradient checkpointing**.
-# Solo hay un modelo en VRAM a la vez: al terminar cada fase se guarda el checkpoint, se liberan
-# las referencias y se purga la caché de CUDA.
-#
-# ### 1.4 Entregables
-#
-# - `checkpoint_scratch.pt` — modelo desde cero (`state_dict`).
-# - `checkpoint_smollm2_135m_ft/` y `checkpoint_smollm2_360m_ft/` — modelos finetuneados.
-# - Este notebook, ejecutado con todas sus salidas visibles, empaquetado junto a los checkpoints.
+# El notebook corre completo en Google Colab con GPU L4. Para el modelo de 360M usamos
+# precisión mixta, acumulación de gradientes y gradient checkpointing, y vamos liberando la
+# memoria de la GPU entre un modelo y el siguiente.
