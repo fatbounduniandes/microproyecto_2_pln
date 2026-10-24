@@ -6,17 +6,15 @@
 # cinco modelos.
 
 # %% [markdown]
-# Cargamos el tokenizador de SmolLM2 y revisamos su vocabulario.
+# Cargamos el tokenizador de SmolLM2 con su revisión fija y revisamos su vocabulario.
 
 # %%
-tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_ID)
-
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_ID, revision=SMOL_135M_REVISION)
 
 print("Tokenizador:", TOKENIZER_ID)
 print("Vocabulario:", len(tokenizer))
 print("Token de fin:", tokenizer.eos_token, "-", tokenizer.eos_token_id)
+print("Revision:", SMOL_135M_REVISION)
 
 # %% [markdown]
 # Filtramos el stream y nos quedamos con los 8.000 primeros archivos del rango.
@@ -34,6 +32,11 @@ for e in dataset:
 
 print("Archivos filtrados:", len(textos))
 print("Tiempo:", round(time.time() - inicio, 1), "segundos")
+
+if len(textos) == N_TOTAL:
+    print("Se encontraron los", N_TOTAL, "archivos que pide el enunciado")
+else:
+    print("ADVERTENCIA: se esperaban", N_TOTAL, "archivos y se encontraron", len(textos))
 
 # %% [markdown]
 # Tokenizamos cada archivo y le agregamos el token de fin de texto.
@@ -79,5 +82,6 @@ bloques_prueba = empacar(ids_por_texto[:50], CTX)
 
 print("Bloques de prueba:", len(bloques_prueba))
 print("Largo de cada bloque:", len(bloques_prueba[0]))
+print("Bloques si se empacaran los 8.000 juntos:", total_tokens // CTX)
 print()
 print(tokenizer.decode(bloques_prueba[0][:80]))

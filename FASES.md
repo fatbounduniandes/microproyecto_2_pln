@@ -8,8 +8,8 @@ solo se hacen cuando él lo pide.
 - [x] **Fase 1 — Repositorio y base** (no va en el notebook)
 - [x] **Fase 2 — Portada y librerías** (secciones 1 y 2)
 - [x] **Fase 3 — Datos y exploración** (sección 3)
-- [ ] **Fase 4 — Preprocesamiento** (sección 4)
-- [ ] **Fase 5 — Split train/val/test** (sección 5)
+- [x] **Fase 4 — Preprocesamiento** (sección 4)
+- [x] **Fase 5 — Split train/val/test** (sección 5)
 - [ ] **Fase 6 — Modelo desde cero** (sección 6)
 - [ ] **Fase 7 — Finetuning 135M y 360M** (sección 7)
 - [ ] **Fase 8 — Evaluación y comparación** (sección 8)
@@ -57,7 +57,9 @@ solo se hacen cuando él lo pide.
 - Empaquetado por split en bloques de 256 y tensores `X_train`, `X_val`, `X_test`.
 - Verificación de solapamiento y de tokens descartados.
 - **Lista cuando:** los tres tamaños cuadran, no hay textos repetidos y todas las formas son `(N, 256)`.
-- **Estado:** escrita, pendiente de ejecutar en Colab.
+- **Resultados:** 10.758 / 1.391 / 1.365 bloques (13.514 en total); 0 solapamientos; descartados
+  216, 255 y 27 tokens.
+- **Estado:** validada en Colab.
 
 ### Fase 6 — Modelo desde cero
 - GPT decoder-only en PyTorch puro (atención multi-cabeza, MLP, LayerNorm, embeddings).

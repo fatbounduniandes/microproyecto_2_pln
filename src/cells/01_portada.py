@@ -47,3 +47,6 @@
 # precisión mixta, acumulación de gradientes y gradient checkpointing, que es la estrategia de
 # memoria que recomienda el personal del curso. Entre un modelo y el siguiente liberamos la
 # memoria de la GPU.
+#
+# Todo el pipeline es reproducible: fijamos la semilla y la revisión del dataset y del
+# tokenizador, de modo que dos ejecuciones producen los mismos 8.000 archivos y el mismo split.

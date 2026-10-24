@@ -306,6 +306,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** se verifican solapamientos con `set` sobre los textos de las tres partes; el
   orden mezclado se usa también en las fases de evaluación y generación.
 
+### D-026 · 2026-10-24 · Reproducibilidad estricta entre ejecuciones
+- **Decisión:** fijar la revisión (commit SHA) del dataset y de los modelos/tokenizador, activar
+  el modo determinista de PyTorch, usar un generador aleatorio local para el split y no usar
+  padding. Revisiones: dataset `35a59fb…`, SmolLM2-135M `93efa2f…`, SmolLM2-360M `f8027fd…`.
+- **Motivo:** Jean exige que dos ejecuciones produzcan exactamente los mismos datos, el mismo
+  split y el mismo orden de entrenamiento; sin revisiones fijas, Hugging Face puede servir otra
+  versión o otro orden de shards.
+- **Detalle técnico:** `CUBLAS_WORKSPACE_CONFIG=:4096:8` antes de importar `torch`,
+  `cudnn.deterministic=True`, `cudnn.benchmark=False`, `torch.use_deterministic_algorithms(...,
+  warn_only=True)` y `random.Random(SEED)` en la mezcla.
+- **Consecuencia:** los datos y el split son idénticos en cada corrida. En GPU, algunos kernels
+  siguen avisando por `warn_only` (no bit a bit idéntico), pero el resultado esperado es el mismo
+  y los tiempos son lo único que varía.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -405,7 +419,7 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 3 ampliada corrida: sin nulos ni duplicados; 1.855 repos distintos.
 - [ ] Fase 3 cierre: Jean redacta las conclusiones de la exploración.
 - [x] Fase 4 validada en Colab: 8.000 textos, 3.460.082 tokens.
-- [ ] Fase 5: sección 5 escrita (split + empaquetado), pendiente de correr.
+- [x] Fase 5 validada: 10.758 / 1.391 / 1.365 bloques, sin solapamientos.
 - [ ] Fase 6: modelo GPT desde cero.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.

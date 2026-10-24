@@ -9,9 +9,9 @@
 # Mezclamos los textos y sus tokens con la semilla fija.
 
 # %%
-random.seed(SEED)
+rng = random.Random(SEED)
 orden = list(range(N_TOTAL))
-random.shuffle(orden)
+rng.shuffle(orden)
 
 textos_mezclados = []
 ids_mezclados = []
@@ -21,6 +21,7 @@ for i in orden:
     ids_mezclados.append(ids_por_texto[i])
 
 print("Textos mezclados:", len(textos_mezclados))
+print("Semilla:", SEED)
 
 # %% [markdown]
 # Partimos en 6.400 de entrenamiento, 800 de validación y 800 de prueba.

@@ -23,6 +23,8 @@ import random
 import time
 import warnings
 
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -80,6 +82,11 @@ SMOL_135M = "HuggingFaceTB/SmolLM2-135M"
 SMOL_360M = "HuggingFaceTB/SmolLM2-360M"
 TOKENIZER_ID = SMOL_135M
 
+DATASET_ID = "codeparrot/codeparrot-clean"
+DATASET_REVISION = "35a59fb025bc0a102f7d96eac09d145b896d487b"
+SMOL_135M_REVISION = "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+SMOL_360M_REVISION = "f8027fd0eaeea54caa13c31d31b9fdc459c38b49"
+
 CTX = 256
 VOCAB_SIZE = 49152
 EOS_TOKEN = "<|endoftext|>"
@@ -116,6 +123,10 @@ def fijar_semilla(seed=SEED):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
 
 
 def liberar_vram_total(modelo=None, optimizador=None):

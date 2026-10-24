@@ -10,14 +10,21 @@
 # licencias, repos y duplicados para saber con qué datos estamos trabajando.
 
 # %% [markdown]
-# Cargamos el dataset en streaming y miramos qué columnas trae.
+# Cargamos el dataset en streaming, fijando la revisión para que el contenido no cambie entre
+# ejecuciones, y miramos qué columnas trae.
 
 # %%
-dataset = load_dataset("codeparrot/codeparrot-clean", split="train", streaming=True)
+dataset = load_dataset(
+    DATASET_ID,
+    split="train",
+    streaming=True,
+    revision=DATASET_REVISION,
+)
 ejemplo = next(iter(dataset))
 
 print(dataset)
 print("Columnas:", list(ejemplo.keys()))
+print("Revision:", DATASET_REVISION)
 
 # %% [markdown]
 # Mostramos un archivo de ejemplo para ver cómo viene el campo `content`.
