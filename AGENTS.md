@@ -165,6 +165,18 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   implementación del notebook. `find-skills` requiere Node 22.20+; sin `npx`, el agente puede
   caer a `gh skill install`.
 
+### D-012 · 2026-10-24 · Formato percent para las celdas y build determinista
+- **Decisión:** `src/cells/NN_seccion.py` usa marcadores `# %%` (código) y `# %% [markdown]`
+  con prefijo `# ` en cada línea de markdown. `build_notebook.py` genera ids de celda con
+  `sha1(archivo:índice)`, escribe JSON con `indent=1` y **no** incluye timestamps ni rutas.
+- **Motivo:** ids estables y salida byte a byte reproducible ⇒ diffs limpios en git y un modo
+  `--check` fiable para detectar el notebook desactualizado.
+- **Descartado:** ids aleatorios de `nbformat` (ruido en cada build); generar el `.ipynb` con
+  `nbformat` (dependencia innecesaria); escribir markdown sin prefijo (rompe el resaltado del
+  editor y la convención jupytext).
+- **Consecuencia:** antes de cada commit se corre `python3 build_notebook.py --check`; si falla,
+  el notebook no corresponde a las celdas fuente y no debe subirse.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -253,8 +265,9 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] `git init`, remoto `origin` configurado, rama `main`.
 - [x] `AGENTS.md`, `.gitignore`, `.gitattributes`.
 - [x] Skills locales de OpenCode para tutoría y notebooks (D-011).
-- [ ] `requirements-colab.txt`.
-- [ ] `build_notebook.py` + celdas 1–5.
+- [x] `requirements-colab.txt` y `build_notebook.py` (D-012).
+- [x] Celdas 1–2: portada + librerías/configuración global.
+- [ ] Celdas 3–5 (datos, preprocesamiento, split).
 - [ ] Smoke test en Colab T4.
 - [ ] Entrenamientos y evaluación.
 - [ ] `Run All` final en L4 y entrega en Drive.

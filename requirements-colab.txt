@@ -1,0 +1,12 @@
+# Dependencias del Microproyecto 2 para Google Colab
+# ------------------------------------------------
+# El notebook instala estas versiones en la celda 2.1 (debe permanecer en espejo).
+# torch NO se fija: Colab lo provee compilado con CUDA y forzar otra versión
+# suele romper el runtime.
+
+transformers>=4.44,<5
+datasets>=2.20,<4
+accelerate>=0.33
+
+# Preinstalados en Colab (no requieren instalación):
+#   torch, numpy, matplotlib, tqdm, huggingface_hub, pandas
