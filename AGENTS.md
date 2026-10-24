@@ -276,6 +276,16 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** el hallazgo se discute en las conclusiones como posible fuga de información,
   junto con los duplicados detectados por `hash`.
 
+### D-023 · 2026-10-24 · El límite inferior de 1.000 casi no descarta archivos
+- **Decisión:** la comparación de muestras usa el archivo **más corto de la muestra** (no uno
+  `< 1000`), y se reporta cuántos archivos quedan por debajo de 1.000 caracteres.
+- **Motivo:** en `codeparrot-clean` no aparecieron archivos de menos de ~1.000 caracteres; la
+  búsqueda de un caso "corto" devolvía `None` y el `print` fallaba con
+  `TypeError: 'NoneType' object is not subscriptable`.
+- **Consecuencia:** el filtro útil es el de 2.000 caracteres. La comparación de tres tamaños sigue
+  mostrando el efecto del filtro, y los casos ausentes se imprimen como "no se encontró" en vez
+  de romper la celda.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)

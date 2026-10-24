@@ -130,27 +130,38 @@ print("Vacios o nulos:", vacios)
 print("Solo espacios:", solo_espacios)
 
 # %% [markdown]
-# Comparamos un archivo corto, uno del rango y uno largo para ver por qué el enunciado filtra.
+# Comparamos el archivo más corto de la muestra, uno que cae en el rango y uno largo. Ojo: casi
+# no aparecen archivos de menos de 1.000 caracteres, así que el límite que de verdad descarta es
+# el de 2.000.
 
 # %%
-corto = None
+menores_1000 = 0
+for e in muestra:
+    if len(e["content"]) < MIN_CHARS:
+        menores_1000 += 1
+
+print("Archivos con menos de 1.000 caracteres:", menores_1000)
+
+mas_corto = muestra[0]
 en_rango = None
 largo = None
 
 for e in muestra:
     n = len(e["content"])
-    if corto is None and n < MIN_CHARS:
-        corto = e
+    if n < len(mas_corto["content"]):
+        mas_corto = e
     if en_rango is None and n >= MIN_CHARS and n <= MAX_CHARS:
         en_rango = e
     if largo is None and n > MAX_CHARS:
         largo = e
-    if corto is not None and en_rango is not None and largo is not None:
-        break
 
-casos = [("CORTO", corto), ("EN RANGO", en_rango), ("LARGO", largo)]
+casos = [("MAS CORTO", mas_corto), ("EN RANGO", en_rango), ("LARGO", largo)]
 
 for nombre, e in casos:
+    if e is None:
+        print("=====", nombre, "- no se encontro en la muestra =====")
+        print()
+        continue
     print("=====", nombre, "-", len(e["content"]), "caracteres =====")
     print(e["content"][:300])
     print()
