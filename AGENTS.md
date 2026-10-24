@@ -287,6 +287,15 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   mostrando el efecto del filtro, y los casos ausentes se imprimen como "no se encontró" en vez
   de romper la celda.
 
+### D-024 · 2026-10-24 · El empaquetado se hace por split, no sobre los 8.000 juntos
+- **Decisión:** la sección 4 filtra, tokeniza y define `empacar()`, probándola con 50 archivos.
+  El empaquetado definitivo de train/validación/prueba se hace en la sección 5, después de
+  partir los 8.000 textos, para que ningún bloque mezcle tokens de dos splits.
+- **Motivo:** si se empaca todo junto y después se cortan bloques, un bloque puede contener el
+  final de un archivo de train y el inicio de uno de test, y la perplejidad quedaría contaminada.
+- **Consecuencia:** se descarta el resto de tokens que no completa un bloque de 256 (`buffer`
+  final); así no hay padding en ningún tensor y la PPL no necesita máscaras.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -385,7 +394,8 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 3 validada en Colab: 11 columnas, 19,9 % de archivos en el rango 1.000–2.000.
 - [x] Fase 3 ampliada corrida: sin nulos ni duplicados; 1.855 repos distintos.
 - [ ] Fase 3 cierre: Jean redacta las conclusiones de la exploración.
-- [ ] Fase 4: filtro, tokenización SmolLM2 y empaquetado en bloques de 256.
+- [ ] Fase 4: sección 4 escrita (filtro, tokenización y empaquetado), pendiente de correr.
+- [ ] Fase 5: split 6400/800/800 y empaquetado por split.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 

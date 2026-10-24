@@ -281,3 +281,8 @@ plt.legend()
 plt.show()
 
 print("Para 8.000 utiles hay que revisar cerca de", esperado, "archivos")
+
+# %% [markdown]
+# ### Conclusiones de la exploración
+#
+# <!-- Jean redacta aquí el cierre de la fase 3. -->

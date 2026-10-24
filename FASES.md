@@ -46,9 +46,11 @@ solo se hacen cuando él lo pide.
 - **Pendiente:** las conclusiones de la fase las redacta Jean.
 
 ### Fase 4 — Preprocesamiento
-- Filtro de 1.000 a 2.000 caracteres.
-- Tokenización con SmolLM2 y empaquetado en bloques de 256.
-- **Lista cuando:** hay 8.000 ejemplos filtrados y los bloques tienen forma `(N, 256)`.
+- Filtro de 1.000 a 2.000 caracteres y 8.000 textos.
+- Tokenización con SmolLM2 y token de fin de texto.
+- Función `empacar()` probada con 50 archivos en bloques de 256.
+- **Lista cuando:** hay 8.000 ejemplos filtrados y los bloques de prueba tienen forma `(N, 256)`.
+- **Estado:** escrita, pendiente de ejecutar en Colab.
 
 ### Fase 5 — Split train/validación/prueba
 - 6.400 / 800 / 800 sin solapamiento.
