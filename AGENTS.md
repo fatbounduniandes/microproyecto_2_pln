@@ -250,13 +250,13 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** el notebook oficial sigue siendo `notebook.ipynb`; la copia ejecutada que se
   entregue se genera al final (Fase 12).
 
-### D-020 · 2026-10-24 · Histograma con rango libre y percentiles
-- **Decisión:** el histograma de longitudes se dibuja sobre el rango completo (sin `range` ni
-  `xlim`) y se imprimen mínimo, mediana y máximo.
-- **Motivo:** preferimos que la figura muestre la distribución real tal como viene, sin recortar
-  datos; los percentiles impresos dan el contexto de la cola.
-- **Consecuencia:** si la cola larga aplasta la gráfica, la alternativa es escala logarítmica en
-  el eje X, no recortar el rango.
+### D-020 · 2026-10-24 · Histograma completo y versión recortada
+- **Decisión:** se dibujan **dos** histogramas: primero el completo (rango libre) y después uno
+  recortado a 4.000 caracteres con un markdown que explica que solo cambia el zoom, no los datos.
+- **Motivo:** Jean quiere ver la distribución real sin recortar, y al mismo tiempo una versión
+  legible de la zona de interés (1.000–2.000 caracteres), que la cola larga aplasta.
+- **Consecuencia:** los percentiles impresos (mínimo, mediana, máximo) dan el contexto de la cola
+  que la vista recortada oculta.
 
 ---
 

@@ -69,3 +69,19 @@ plt.title("Longitud de los archivos de codeparrot-clean")
 plt.xlabel("caracteres")
 plt.ylabel("cantidad de archivos")
 plt.show()
+
+# %% [markdown]
+# La gráfica anterior muestra la distribución completa, pero la cola de archivos muy largos
+# aplasta la zona que nos interesa. Por eso repetimos el histograma recortado a 4.000 caracteres:
+# no estamos cambiando los datos, solo el zoom de la figura.
+
+# %%
+plt.figure(figsize=(8, 4))
+plt.hist(longitudes, bins=60, range=(0, 4000))
+plt.axvline(MIN_CHARS, color="red", linestyle="--")
+plt.axvline(MAX_CHARS, color="red", linestyle="--")
+plt.title("Longitud de los archivos (vista hasta 4.000 caracteres)")
+plt.xlabel("caracteres")
+plt.ylabel("cantidad de archivos")
+plt.xlim(0, 4000)
+plt.show()
