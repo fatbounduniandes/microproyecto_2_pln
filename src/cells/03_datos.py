@@ -55,7 +55,6 @@ for e in muestra:
     longitudes.append(len(e["content"]))
 
 print("Archivos medidos:", len(muestra))
-print("Tiempo:", round(time.time() - inicio, 1), "segundos")
 
 # %% [markdown]
 # Contamos cuántos archivos caen en el rango que pide el enunciado y resumimos la distribución.
@@ -265,6 +264,7 @@ print("Archivos repetidos por hash:", repetidos)
 # Estimamos cuántos archivos hay que revisar para juntar los 8.000 que pide el enunciado.
 
 # %%
+# si 399 de cada 2.000 sirven, para 8.000 necesitamos 8000 x 2000 / 399
 acumulado = []
 total = 0
 
@@ -292,4 +292,37 @@ print("Para 8.000 utiles hay que revisar cerca de", esperado, "archivos")
 # %% [markdown]
 # ### Conclusiones de la exploración
 #
-# <!-- Jean redacta aquí el cierre de la fase 3. -->
+# **Solo 2 de cada 10 archivos sirven.** De los 2.000 que revisamos, 399 (19,9 %) caen entre
+# 1.000 y 2.000 caracteres. Para juntar los 8.000 que pide el enunciado hay que recorrer unos
+# 40.100 archivos, o sea cinco veces más de lo que costaría si todos calificaran. En tiempo no
+# duele: 2.000 archivos tardaron 1,4 s, así que el filtro completo toma unos 30 s.
+#
+# **La distribución es de cola larga.** La media (10.263,6) es 2,2 veces la mediana (4.733). Si la
+# distribución fuera simétrica, media y mediana coincidirían; que estén tan separadas significa
+# que unos pocos archivos gigantes arrastran el promedio. El máximo es 456.237 caracteres: 96
+# veces la mediana y 445 veces el archivo más corto. Por eso la media no describe estos datos y
+# preferimos la mediana y los percentiles para hablar del "archivo típico".
+#
+# **El límite inferior no filtra nada.** El archivo más corto de la muestra tiene 1.027 caracteres
+# y no apareció ni uno por debajo de 1.000: codeparrot-clean ya viene pre-filtrado. Todo el
+# descarte lo hace el techo de 2.000, que deja fuera a 8 de cada 10 archivos.
+#
+# **El techo también sesga el contenido.** Además de limitar el tamaño, tiende a quedarse con
+# archivos de poca cabecera: los que traen bloques grandes de licencia o comentarios iniciales
+# suelen pasar los 2.000 caracteres y quedan fuera. Es una limitación del protocolo, no algo que
+# podamos corregir sin incumplirlo, pero conviene recordarla al interpretar los resultados.
+#
+# **Qué clase de código esperar.** En 2.000 archivos contamos 27.325 `def`, 13.547 `import` y
+# 17.149 `return`, contra solo 1.297 `print`. Domina la definición de funciones dentro de módulos,
+# no scripts que corren de principio a fin. Por eso esperamos que los modelos finetuneados generen
+# funciones y clases plausibles antes que programas completos, y que el modelo desde cero salga
+# mucho más plano y repetitivo.
+#
+# **Calidad y procedencia.** No encontramos `content` vacíos, nulos ni duplicados por `hash`. Los
+# 2.000 archivos vienen de 1.855 repos distintos (máximo 5 de un mismo repo), así que el split
+# aleatorio no debería mezclar el mismo proyecto entre train y test. Las licencias son en su
+# mayoría permisivas (apache 421, mit 366, bsd 347), con algo de copyleft (gpl-3 347, agpl-3 186);
+# como los bloques conservan las cabeceras, el modelo también aprende a emitirlas.
+#
+# En volumen, los 8.000 archivos filtrados dieron 3.460.082 tokens, que se empacan en 13.514
+# bloques de 256. Eso es lo que alimenta el entrenamiento de la sección 6.

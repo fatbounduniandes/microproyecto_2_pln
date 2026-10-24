@@ -31,9 +31,9 @@
 #
 # Usamos `codeparrot/codeparrot-clean` en modo streaming. Nos quedamos solo con archivos de
 # entre 1.000 y 2.000 caracteres, tomamos 8.000 ejemplos y los dividimos en 6.400 de
-# entrenamiento, 800 de validación y 800 de prueba. Todos los modelos usan el tokenizador de
-# SmolLM2 (49.152 tokens) y un contexto de 256 tokens. El filtro, el split y el contexto son los
-# que exige la guía del proyecto.
+# entrenamiento, 800 de validación y 800 de prueba como lo pide el proyecto. Todos los modelos
+# usan el tokenizador de SmolLM2 (49.152 tokens) y un contexto de 256 tokens. El filtro, el split
+# y el contexto son los que exige la guía del proyecto.
 #
 # ### Evaluación
 #

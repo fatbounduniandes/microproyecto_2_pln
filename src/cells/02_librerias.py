@@ -23,7 +23,7 @@ import random
 import time
 import warnings
 
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # workspace fijo para que las multiplicaciones de matrices den siempre lo mismo
 
 import numpy as np
 import torch
@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
 warnings.filterwarnings("ignore")
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  # evita problemas con los avisos de fork en Colab
 
 print("Entorno cargado")
 print("torch:", torch.__version__)
@@ -59,7 +59,7 @@ SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 USE_BF16 = DEVICE == "cuda" and torch.cuda.is_bf16_supported()
 
-if USE_BF16:
+if USE_BF16:  # elige precision mixta segun la GPU de Colab (T4 o L4)
     AMP_DTYPE = torch.bfloat16
     NOMBRE_AMP = "bfloat16"
     USE_SCALER = False
@@ -73,14 +73,14 @@ if DEVICE == "cuda":
     print("GPU:", props.name)
     print("VRAM:", round(props.total_memory / 1024**3, 1), "GB")
 else:
-    print("ADVERTENCIA: no hay GPU, el entrenamiento será muy lento")
+    print("No se detecto GPU, el entrenamiento sera con CPU y puede ser muy lento")
 
 print("AMP:", NOMBRE_AMP)
 print("GradScaler:", USE_SCALER)
 
 SMOL_135M = "HuggingFaceTB/SmolLM2-135M"
 SMOL_360M = "HuggingFaceTB/SmolLM2-360M"
-TOKENIZER_ID = SMOL_135M
+TOKENIZER_ID = SMOL_135M  # uno solo para las cinco configuraciones porque la PPL se mide por token
 
 DATASET_ID = "codeparrot/codeparrot-clean"
 DATASET_REVISION = "35a59fb025bc0a102f7d96eac09d145b896d487b"
@@ -109,13 +109,13 @@ os.makedirs(DRIVE_DIR, exist_ok=True)
 print("Checkpoints:", DRIVE_DIR)
 
 if "HF_TOKEN" in os.environ:
-    print("HF_TOKEN: definido")
+    print("HF_TOKEN, configurado")
 else:
-    print("HF_TOKEN: no definido")
+    print("HF_TOKEN: no esta en las variables de entorno")
 
 # %% [markdown]
 # Fijamos la semilla para que los resultados sean reproducibles y creamos la función que libera
-# la GPU entre modelos, como indica el protocolo de checkpoints.
+# la GPU entre modelos, como indica el documento de checkpoints.
 
 # %%
 def fijar_semilla(seed=SEED):
@@ -140,4 +140,3 @@ def liberar_vram_total(modelo=None, optimizador=None):
 
 fijar_semilla()
 print("Semilla:", SEED)
-print("Configuración lista")

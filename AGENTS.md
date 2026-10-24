@@ -193,6 +193,8 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** al escribir una celda nueva, primero el markdown explica qué se hace y
   luego el código lo hace sin comentarios. Nombres de variables autoexplicativos. Cada celda de
   código lleva justo encima un markdown de **una sola frase** que anuncia lo que hace.
+  **Excepción:** Jean puede dejar comentarios cortos de una línea en el código cuando aclaran una
+  decisión técnica (por ejemplo, por qué se fija `CUBLAS_WORKSPACE_CONFIG`).
 
 ### D-014 · 2026-10-24 · Los `push` se hacen solo cuando Jean lo indica
 - **Decisión:** se puede trabajar y hacer commits locales, pero **ningún `git push`** se ejecuta
