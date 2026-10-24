@@ -327,8 +327,9 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Skills locales de OpenCode para tutoría y notebooks (D-011).
 - [x] `requirements-colab.txt` y `build_notebook.py` (D-012).
 - [x] Fase 1 completada: repo, bitácora y `FASES.md`.
-- [ ] Fase 2: portada y librerías (corregidas al estilo D-013, pendiente validar en Colab).
-- [ ] Fases 3–10: secciones 3 a 10 del notebook.
+- [x] Fase 2 validada: portada y librerías corren en Colab.
+- [ ] Fase 3: sección 3 escrita (streaming + exploración), pendiente de correr en Colab.
+- [ ] Fases 4–10: secciones 4 a 10 del notebook.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 
