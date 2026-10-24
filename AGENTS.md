@@ -145,6 +145,26 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** fijar semilla antes de cargar datos, antes de inicializar cada modelo y antes
   de muestrear el subconjunto de evaluación.
 
+### D-011 · 2026-10-24 · Skills locales de OpenCode (tutoría y notebooks)
+- **Decisión:** instalar en `.opencode/skills/` el set local de skills de apoyo:
+  `jupyter-notebook` (`openai/skills`), `mentoring-juniors` (`github/awesome-copilot`),
+  `progressive-hint-ladder`, `teach-back-evaluator` y `stuck-and-error-diagnosis-coach`
+  (`GarethManning/education-agent-skills@v3.1.0`), `find-skills`
+  (`vercel-labs/skills@v1.7.4`) y la skill propia `tutor-pln`. Para `find-skills`, instalar
+  Node.js 22.20+ local en `~/.local/share/` y exponer `node`, `npm` y `npx` en `~/.local/bin`.
+- **Motivo:** `tutor-pln` enseña los conceptos del microproyecto en modos aprendiz/docente;
+  `jupyter-notebook` estandariza la creación y validación de `.ipynb`; las skills de mentoría
+  refuerzan el aprendizaje socrático. Es tooling local: no altera el notebook, el pipeline ni
+  el entregable.
+- **Alternativas descartadas:** instalarlas globalmente en `~/.config/opencode/skills` (menos
+  portable y fuera del proyecto); instalar las 165 skills de la librería de educación (infla el
+  catálogo y el contexto sin aportar al alcance); editar el `.ipynb` a mano para “enseñar”
+  (rompe D-004 y D-006).
+- **Consecuencia:** `.opencode/` sigue sin versionarse (D-008); en otra máquina hay que
+  reinstalar el set. `tutor-pln` debe respetar las reglas duras de §4 y no sustituir la
+  implementación del notebook. `find-skills` requiere Node 22.20+; sin `npx`, el agente puede
+  caer a `gh skill install`.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -232,6 +252,7 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 
 - [x] `git init`, remoto `origin` configurado, rama `main`.
 - [x] `AGENTS.md`, `.gitignore`, `.gitattributes`.
+- [x] Skills locales de OpenCode para tutoría y notebooks (D-011).
 - [ ] `requirements-colab.txt`.
 - [ ] `build_notebook.py` + celdas 1–5.
 - [ ] Smoke test en Colab T4.
