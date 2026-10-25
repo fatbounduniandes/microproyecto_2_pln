@@ -1,10 +1,14 @@
 # %% [markdown]
 # ## 6. Modelo desde cero
 #
-# Implementamos un GPT decoder-only en PyTorch puro: atención multi-cabeza con máscara causal,
-# bloques con LayerNorm y MLP, embeddings de token y de posición, y una cabeza de salida atada a
-# los embeddings. Tiene 6 capas, 6 cabezas y 384 dimensiones (unos 29,6 M de parámetros), y se
-# entrena desde pesos aleatorios con los hiperparámetros de la tabla del enunciado.
+# Implementamos un Transformer decoder-only en PyTorch puro: atención multi-cabeza con máscara
+# causal, bloques con LayerNorm y MLP, embeddings de token y de posición, y una cabeza de salida
+# atada a los embeddings. Tiene 6 capas, 6 cabezas y 384 dimensiones (unos 29,6 M de parámetros),
+# y se entrena desde pesos aleatorios.
+#
+# Usamos 10 épocas en vez de las 3 que sugiere la tabla del enunciado: con 2,75 M tokens por
+# época el modelo queda muy subentrenado, y la curva de validación dirá si aguanta. Para compensar
+# subimos el dropout y guardamos el mejor modelo según validación.
 
 # %% [markdown]
 # Definimos los hiperparámetros del modelo y la máscara causal.
@@ -14,9 +18,9 @@ N_LAYER = 6
 N_HEAD = 6
 N_EMBD = 384
 N_MLP = 4 * N_EMBD
-DROPOUT = 0.1
+DROPOUT = 0.15
 
-EPOCAS = 3
+EPOCAS = 10
 BATCH = 16
 LR = 3e-4
 LR_MIN = 3e-5
@@ -79,10 +83,10 @@ class Bloque(nn.Module):
         return x
 
 # %% [markdown]
-# Implementamos el GPT completo con embeddings de token y posición y la cabeza de salida.
+# Implementamos el modelo completo con embeddings de token y posición y la cabeza de salida.
 
 # %%
-class GPT(nn.Module):
+class ModeloInicial(nn.Module):
     def __init__(self):
         super().__init__()
         self.tok_emb = nn.Embedding(VOCAB_SIZE, N_EMBD)
@@ -128,14 +132,14 @@ class GPT(nn.Module):
 # Creamos el modelo, contamos sus parámetros y probamos un forward con datos falsos.
 
 # %%
-modelo_scratch = GPT().to(DEVICE)
+modelo_inicial = ModeloInicial().to(DEVICE)
 
 total_parametros = 0
-for parametro in modelo_scratch.parameters():
+for parametro in modelo_inicial.parameters():
     total_parametros += parametro.numel()
 
 prueba = torch.randint(0, VOCAB_SIZE, (2, CTX), device=DEVICE)
-logits, perdida = modelo_scratch(prueba, prueba)
+logits, perdida = modelo_inicial(prueba, prueba)
 
 print("Parametros:", total_parametros)
 print("Logits:", tuple(logits.shape))
@@ -162,7 +166,7 @@ print("Lotes de validacion:", len(val_loader))
 
 # %%
 optimizer = torch.optim.AdamW(
-    modelo_scratch.parameters(),
+    modelo_inicial.parameters(),
     lr=LR,
     betas=(0.9, 0.99),
     weight_decay=WEIGHT_DECAY,
@@ -187,53 +191,16 @@ print("Pasos por epoca:", PASOS_POR_EPOCA)
 print("Pasos totales:", PASOS_TOTALES)
 
 # %% [markdown]
-# Medimos la velocidad con 20 pasos antes de lanzar el entrenamiento completo.
-
-# %%
-modelo_scratch.train()
-inicio = time.time()
-
-for paso, (lote,) in enumerate(train_loader):
-    if paso == 20:
-        break
-    lote = lote.to(DEVICE)
-    optimizer.zero_grad(set_to_none=True)
-    with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-        _, perdida = modelo_scratch(lote, lote)
-    perdida.backward()
-    torch.nn.utils.clip_grad_norm_(modelo_scratch.parameters(), CLIP_GRAD_NORM)
-    optimizer.step()
-    scheduler.step()
-
-segundos_paso = (time.time() - inicio) / 20
-tokens_por_segundo = BATCH * CTX / segundos_paso
-eta_epoca = segundos_paso * PASOS_POR_EPOCA
-eta_total = eta_epoca * EPOCAS
-
-print("Segundos por paso:", round(segundos_paso, 3))
-print("Tokens por segundo:", round(tokens_por_segundo))
-print("ETA por epoca:", round(eta_epoca / 60, 1), "min")
-print("ETA total:", round(eta_total / 60, 1), "min")
-
-if eta_total > 3600:
-    print("ALERTA: el entrenamiento tardaria mas de una hora, conviene revisar el pipeline")
-
-optimizer = torch.optim.AdamW(
-    modelo_scratch.parameters(),
-    lr=LR,
-    betas=(0.9, 0.99),
-    weight_decay=WEIGHT_DECAY,
-)
-scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, tasa_lr)
-
-# %% [markdown]
-# Entrenamos durante 3 épocas y medimos la pérdida de entrenamiento y de validación.
+# Entrenamos y guardamos en memoria el modelo que mejor pérdida de validación obtiene.
 
 # %%
 historial = {"train": [], "val": []}
+mejor_val = float("inf")
+mejor_epoca = 0
+mejor_estado = None
 
 for epoca in range(EPOCAS):
-    modelo_scratch.train()
+    modelo_inicial.train()
     suma = 0.0
     ejemplos = 0
     inicio = time.time()
@@ -242,9 +209,9 @@ for epoca in range(EPOCAS):
         lote = lote.to(DEVICE)
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-            _, perdida = modelo_scratch(lote, lote)
+            _, perdida = modelo_inicial(lote, lote)
         perdida.backward()
-        torch.nn.utils.clip_grad_norm_(modelo_scratch.parameters(), CLIP_GRAD_NORM)
+        torch.nn.utils.clip_grad_norm_(modelo_inicial.parameters(), CLIP_GRAD_NORM)
         optimizer.step()
         scheduler.step()
         suma += perdida.item() * lote.size(0)
@@ -252,7 +219,7 @@ for epoca in range(EPOCAS):
 
     perdida_train = suma / ejemplos
 
-    modelo_scratch.eval()
+    modelo_inicial.eval()
     suma_val = 0.0
     ejemplos_val = 0
 
@@ -260,7 +227,7 @@ for epoca in range(EPOCAS):
         for (lote,) in val_loader:
             lote = lote.to(DEVICE)
             with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-                _, perdida = modelo_scratch(lote, lote)
+                _, perdida = modelo_inicial(lote, lote)
             suma_val += perdida.item() * lote.size(0)
             ejemplos_val += lote.size(0)
 
@@ -269,10 +236,20 @@ for epoca in range(EPOCAS):
     historial["train"].append(perdida_train)
     historial["val"].append(perdida_val)
 
+    if perdida_val < mejor_val:
+        mejor_val = perdida_val
+        mejor_epoca = epoca + 1
+        mejor_estado = {}
+        for nombre, parametro in modelo_inicial.state_dict().items():
+            mejor_estado[nombre] = parametro.detach().cpu().clone()
+
     print("Epoca", epoca + 1,
           "| train:", round(perdida_train, 3),
           "| val:", round(perdida_val, 3),
+          "| lr:", round(scheduler.get_last_lr()[0], 7),
           "| tiempo:", round(time.time() - inicio, 1), "s")
+
+print("Mejor epoca:", mejor_epoca, "| mejor val:", round(mejor_val, 3))
 
 # %% [markdown]
 # Graficamos las curvas de pérdida para ver si hay sobreajuste.
@@ -289,16 +266,19 @@ plt.grid(alpha=0.3)
 plt.show()
 
 # %% [markdown]
-# Guardamos el checkpoint en Drive y liberamos la memoria de la GPU.
+# Restauramos el mejor modelo, lo guardamos en Drive y liberamos la memoria de la GPU.
 
 # %%
+modelo_inicial.load_state_dict(mejor_estado)
+
 ruta_scratch = os.path.join(DRIVE_DIR, "checkpoint_scratch.pt")
-torch.save(modelo_scratch.state_dict(), ruta_scratch)
+torch.save(modelo_inicial.state_dict(), ruta_scratch)
 
 print("Checkpoint:", ruta_scratch)
+print("Epoca guardada:", mejor_epoca)
 print("Tamano:", round(os.path.getsize(ruta_scratch) / 1024**2, 1), "MB")
 
-del modelo_scratch
+del modelo_inicial
 del optimizer
 del scheduler
 liberar_vram_total()

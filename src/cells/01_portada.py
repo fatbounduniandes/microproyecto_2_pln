@@ -12,7 +12,7 @@
 #
 # ### Resumen
 #
-# En este microproyecto entrenamos modelos tipo GPT (Transformer decoder-only) para generar
+# En este microproyecto entrenamos modelos Transformer decoder-only para generar
 # código en Python. El modelo aprende a predecir el siguiente token de un archivo de código y,
 # con eso, puede continuar un fragmento que le demos como entrada.
 #
@@ -21,7 +21,7 @@
 #
 # | # | Configuración | Modelo | Entrenamiento |
 # | :-: | :--- | :--- | :--- |
-# | 1 | Desde cero | GPT decoder-only en PyTorch | 3 épocas desde pesos aleatorios |
+# | 1 | Desde cero | Transformer decoder-only en PyTorch | 10 épocas desde pesos aleatorios |
 # | 2 | Baseline 135M | SmolLM2-135M | Sin entrenar |
 # | 3 | Finetuning 135M | SmolLM2-135M | Full finetuning, 1 época |
 # | 4 | Baseline 360M | SmolLM2-360M | Sin entrenar |

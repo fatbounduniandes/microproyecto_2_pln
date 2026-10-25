@@ -336,6 +336,17 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   Chinchilla; se espera subentrenamiento y pérdidas altas. Es el argumento de la sección 10 sobre
   el valor del preentrenamiento.
 
+### D-028 · 2026-10-25 · Épocas 10 / 3 / 3 en vez de 3 / 1 / 1
+- **Decisión:** el modelo desde cero entrena **10 épocas**; los dos finetunings, **3 cada uno**.
+  La tabla §4 del enunciado sugiere ≈3 / 1 / 1, así que es una desviación consciente.
+- **Motivo:** con 2,75 M tokens por época el scratch queda en 0,28 tokens/parámetro por época; con
+  3 épocas apenas aprende. Los finetunings también se benefician de más pasos sobre el dominio.
+- **Mitigaciones:** dropout del scratch sube a 0,15, se guarda el **mejor modelo según validación**
+  y en los finetunings se guardará checkpoint por época. El scheduler coseno se recalibra solo
+  porque usa `PASOS_TOTALES`.
+- **Consecuencia:** la corrida completa pasa de ~35–55 min a **1,5–2,3 h** en L4. Si la validación
+  empeora, el checkpoint entregado es el mejor, no el último.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
