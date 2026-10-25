@@ -322,6 +322,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   siguen avisando por `warn_only` (no bit a bit idéntico), pero el resultado esperado es el mismo
   y los tiempos son lo único que varía.
 
+### D-027 · 2026-10-25 · Arquitectura del GPT desde cero
+- **Decisión:** GPT-2 clásico con 6 capas, 6 cabezas y 384 dimensiones; MLP de 1.536 con GELU,
+  LayerNorm pre-norm, embedding posicional aprendido de 256, bias desactivado, dropout 0,1,
+  embeddings atados a `lm_head` e init normal 0,02 con residual escalado por `1/√(2·n_layer)`.
+  Total: **29.599.488 parámetros**.
+- **Motivo:** es la configuración de referencia de nanoGPT para contexto 256 y el enunciado pide
+  explícitamente LayerNorm, MLP y embeddings posicionales. Se descartaron RoPE, RMSNorm, SwiGLU y
+  GQA (lo que usa SmolLM2) porque se alejan de lo pedido y de lo que se puede sustentar.
+- **Entrenamiento:** batch 16 directo (sin acumulación), AdamW con β=(0,9; 0,99), wd 0,1, clip
+  1,0, lr 3e-4 con calentamiento de 100 pasos y decaimiento coseno hasta 3e-5, 3 épocas.
+- **Consecuencia:** el modelo verá 8,25 M tokens (0,28 tokens por parámetro), muy por debajo de
+  Chinchilla; se espera subentrenamiento y pérdidas altas. Es el argumento de la sección 10 sobre
+  el valor del preentrenamiento.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -422,7 +436,8 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [ ] Fase 3 cierre: Jean redacta las conclusiones de la exploración.
 - [x] Fase 4 validada en Colab: 8.000 textos, 3.460.082 tokens.
 - [x] Fase 5 validada: 10.758 / 1.391 / 1.365 bloques, sin solapamientos.
-- [ ] Fase 6: modelo GPT desde cero.
+- [ ] Fase 6: sección 6 escrita y probada en CPU, pendiente de Colab.
+- [ ] Fase 7: finetuning de 135M y 360M.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 

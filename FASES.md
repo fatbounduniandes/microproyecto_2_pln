@@ -62,9 +62,12 @@ solo se hacen cuando él lo pide.
 - **Estado:** validada en Colab.
 
 ### Fase 6 — Modelo desde cero
-- GPT decoder-only en PyTorch puro (atención multi-cabeza, MLP, LayerNorm, embeddings).
-- Entrenamiento y curvas de pérdida.
-- **Lista cuando:** la pérdida baja y el checkpoint se guarda en Drive.
+- GPT-2 de 6 capas, 6 cabezas y 384 dim (29,6 M params) con embeddings atados.
+- Benchmark de 20 pasos con ETA antes de entrenar.
+- 3 épocas con AMP, warmup y coseno; curvas de train y validación.
+- Checkpoint `checkpoint_scratch.pt` y liberación de VRAM.
+- **Lista cuando:** la pérdida baja de ~10,8 (azar) y el checkpoint queda en Drive.
+- **Estado:** escrita y probada en CPU; pendiente de ejecutar en Colab.
 
 ### Fase 7 — Finetuning de 135M y 360M
 - Full finetuning con AMP + acumulación de gradientes + gradient checkpointing.
