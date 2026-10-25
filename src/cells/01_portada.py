@@ -23,9 +23,9 @@
 # | :-: | :--- | :--- | :--- |
 # | 1 | Desde cero | Transformer decoder-only en PyTorch | 10 épocas desde pesos aleatorios |
 # | 2 | Baseline 135M | SmolLM2-135M | Sin entrenar |
-# | 3 | Finetuning 135M | SmolLM2-135M | Full finetuning, 1 época |
+# | 3 | Finetuning 135M | SmolLM2-135M | Full finetuning, 3 épocas |
 # | 4 | Baseline 360M | SmolLM2-360M | Sin entrenar |
-# | 5 | Finetuning 360M | SmolLM2-360M | Full finetuning, 1 época |
+# | 5 | Finetuning 360M | SmolLM2-360M | Full finetuning, 3 épocas |
 #
 # ### Datos
 #

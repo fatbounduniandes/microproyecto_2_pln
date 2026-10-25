@@ -347,6 +347,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** la corrida completa pasa de ~35–55 min a **1,5–2,3 h** en L4. Si la validación
   empeora, el checkpoint entregado es el mejor, no el último.
 
+### D-029 · 2026-10-25 · Detalles del finetuning
+- **Decisión:** una sola función `ajustar_modelo(config)` para los dos modelos. 135M con micro 8 ×
+  acumulación 2; 360M con micro 2 × acumulación 8. `weight_decay = 0.01`, warmup de 50 pasos y
+  coseno hasta el 10 % del lr, 3 épocas.
+- **Mejor época:** cada vez que mejora la validación se guarda el modelo en una carpeta temporal
+  (`..._mejor`); al final se recarga esa época y se copia a la carpeta canónica del enunciado.
+  La temporal se borra para no duplicar 540 MB en Drive.
+- **Reanudación:** si la carpeta canónica ya existe, la función imprime el aviso y no entrena
+  (D-007). Así el `Run All` final no repite una hora de cómputo.
+- **Motivo del wd bajo:** un finetuning de 3 épocas no necesita la regularización del
+  preentrenamiento; 0,1 habría frenado la adaptación al dominio.
+- **Consecuencia:** el checkpoint entregado es el de mejor validación, no necesariamente el de la
+  última época.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
@@ -448,7 +462,7 @@ No versionado: `checkpoint_*`, `*.pt`, `*.safetensors`, `*.zip`, `data/`, caché
 - [x] Fase 4 validada en Colab: 8.000 textos, 3.460.082 tokens.
 - [x] Fase 5 validada: 10.758 / 1.391 / 1.365 bloques, sin solapamientos.
 - [ ] Fase 6: sección 6 escrita y probada en CPU, pendiente de Colab.
-- [ ] Fase 7: finetuning de 135M y 360M.
+- [ ] Fase 7: sección 7 escrita y probada con modelo diminuto, pendiente de Colab.
 - [ ] Fase 11: smoke test en Colab T4.
 - [ ] Fase 12: `Run All` final en L4 y entrega en Drive.
 
