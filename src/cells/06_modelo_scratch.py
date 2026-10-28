@@ -191,92 +191,124 @@ print("Pasos por epoca:", PASOS_POR_EPOCA)
 print("Pasos totales:", PASOS_TOTALES)
 
 # %% [markdown]
-# Entrenamos y guardamos en memoria el modelo que mejor pérdida de validación obtiene.
+# Entrenamos y si el checkpoint ya existe en Drive lo cargamos y saltamos el entrenamiento.
 
 # %%
+ruta_scratch = os.path.join(DRIVE_DIR, "checkpoint_scratch.pt")
+ruta_historial_scratch = os.path.join(DRIVE_DIR, "historial_scratch.json")
+
+entreno_scratch = True
+if os.path.exists(ruta_scratch):
+    print("checkpoint existente, se omite el entrenamiento")
+    modelo_inicial.load_state_dict(torch.load(ruta_scratch, map_location=DEVICE))
+    entreno_scratch = False
+
 historial = {"train": [], "val": []}
 mejor_val = float("inf")
 mejor_epoca = 0
 mejor_estado = None
 
-for epoca in range(EPOCAS):
-    modelo_inicial.train()
-    suma = 0.0
-    ejemplos = 0
-    inicio = time.time()
+if entreno_scratch == False:
+    if os.path.exists(ruta_historial_scratch):
+        archivo = open(ruta_historial_scratch, "r")
+        guardado = json.load(archivo)
+        archivo.close()
+        historial = guardado["historial"]
+        mejor_val = guardado["mejor_val"]
+        mejor_epoca = guardado["mejor_epoca"]
+        print("historial recuperado de", ruta_historial_scratch)
 
-    for (lote,) in train_loader:
-        lote = lote.to(DEVICE)
-        optimizer.zero_grad(set_to_none=True)
-        with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-            _, perdida = modelo_inicial(lote, lote)
-        perdida.backward()
-        torch.nn.utils.clip_grad_norm_(modelo_inicial.parameters(), CLIP_GRAD_NORM)
-        optimizer.step()
-        scheduler.step()
-        suma += perdida.item() * lote.size(0)
-        ejemplos += lote.size(0)
+if entreno_scratch:
+    for epoca in range(EPOCAS):
+        modelo_inicial.train()
+        suma = 0.0
+        ejemplos = 0
+        inicio = time.time()
 
-    perdida_train = suma / ejemplos
-
-    modelo_inicial.eval()
-    suma_val = 0.0
-    ejemplos_val = 0
-
-    with torch.no_grad():
-        for (lote,) in val_loader:
+        for (lote,) in train_loader:
             lote = lote.to(DEVICE)
+            optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
                 _, perdida = modelo_inicial(lote, lote)
-            suma_val += perdida.item() * lote.size(0)
-            ejemplos_val += lote.size(0)
+            perdida.backward()
+            torch.nn.utils.clip_grad_norm_(modelo_inicial.parameters(), CLIP_GRAD_NORM)
+            optimizer.step()
+            scheduler.step()
+            suma += perdida.item() * lote.size(0)
+            ejemplos += lote.size(0)
 
-    perdida_val = suma_val / ejemplos_val
+        perdida_train = suma / ejemplos
 
-    historial["train"].append(perdida_train)
-    historial["val"].append(perdida_val)
+        modelo_inicial.eval()
+        suma_val = 0.0
+        ejemplos_val = 0
 
-    if perdida_val < mejor_val:
-        mejor_val = perdida_val
-        mejor_epoca = epoca + 1
-        mejor_estado = {}
-        for nombre, parametro in modelo_inicial.state_dict().items():
-            mejor_estado[nombre] = parametro.detach().cpu().clone()
+        with torch.no_grad():
+            for (lote,) in val_loader:
+                lote = lote.to(DEVICE)
+                with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
+                    _, perdida = modelo_inicial(lote, lote)
+                suma_val += perdida.item() * lote.size(0)
+                ejemplos_val += lote.size(0)
 
-    print("Epoca", epoca + 1,
-          "| train:", round(perdida_train, 3),
-          "| val:", round(perdida_val, 3),
-          "| lr:", round(scheduler.get_last_lr()[0], 7),
-          "| tiempo:", round(time.time() - inicio, 1), "s")
+        perdida_val = suma_val / ejemplos_val
 
-print("Mejor epoca:", mejor_epoca, "| mejor val:", round(mejor_val, 3))
+        historial["train"].append(perdida_train)
+        historial["val"].append(perdida_val)
+
+        if perdida_val < mejor_val:
+            mejor_val = perdida_val
+            mejor_epoca = epoca + 1
+            mejor_estado = {}
+            for nombre, parametro in modelo_inicial.state_dict().items():
+                mejor_estado[nombre] = parametro.detach().cpu().clone()
+
+        print("Epoca", epoca + 1,
+              "| train:", round(perdida_train, 3),
+              "| val:", round(perdida_val, 3),
+              "| lr:", round(scheduler.get_last_lr()[0], 7),
+              "| tiempo:", round(time.time() - inicio, 1), "s")
+
+    print("Mejor epoca:", mejor_epoca, "| mejor val:", round(mejor_val, 3))
+else:
+    print("se uso el checkpoint de Drive, mejor epoca:", mejor_epoca)
 
 # %% [markdown]
 # Graficamos las curvas de pérdida para ver si hay sobreajuste.
 
 # %%
-plt.figure(figsize=(7, 4))
-plt.plot(range(1, EPOCAS + 1), historial["train"], marker="o", label="train")
-plt.plot(range(1, EPOCAS + 1), historial["val"], marker="o", label="validacion")
-plt.title("Perdida por epoca - modelo desde cero")
-plt.xlabel("epoca")
-plt.ylabel("cross-entropy")
-plt.legend()
-plt.grid(alpha=0.3)
-plt.show()
+if len(historial["val"]) > 0:
+    plt.figure(figsize=(7, 4))
+    plt.plot(range(1, len(historial["train"]) + 1), historial["train"], marker="o", label="train")
+    plt.plot(range(1, len(historial["val"]) + 1), historial["val"], marker="o", label="validacion")
+    plt.title("Perdida por epoca - modelo desde cero")
+    plt.xlabel("epoca")
+    plt.ylabel("cross-entropy")
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.show()
+else:
+    print("sin historial en esta corrida, no hay curva para graficar")
 
 # %% [markdown]
-# Restauramos el mejor modelo, lo guardamos en Drive y liberamos la memoria de la GPU.
+# Guardamos el mejor modelo en Drive con su historial y liberamos la memoria de la GPU.
 
 # %%
-modelo_inicial.load_state_dict(mejor_estado)
+if entreno_scratch:
+    modelo_inicial.load_state_dict(mejor_estado)
 
-ruta_scratch = os.path.join(DRIVE_DIR, "checkpoint_scratch.pt")
-torch.save(modelo_inicial.state_dict(), ruta_scratch)
+    torch.save(modelo_inicial.state_dict(), ruta_scratch)
 
-print("Checkpoint:", ruta_scratch)
-print("Epoca guardada:", mejor_epoca)
-print("Tamano:", round(os.path.getsize(ruta_scratch) / 1024**2, 1), "MB")
+    archivo = open(ruta_historial_scratch, "w")
+    json.dump({"historial": historial, "mejor_val": mejor_val, "mejor_epoca": mejor_epoca}, archivo)
+    archivo.close()
+
+    print("Checkpoint:", ruta_scratch)
+    print("Epoca guardada:", mejor_epoca)
+    print("Tamano:", round(os.path.getsize(ruta_scratch) / 1024**2, 1), "MB")
+else:
+    print("Checkpoint:", ruta_scratch)
+    print("Epoca guardada:", mejor_epoca)
 
 del modelo_inicial
 del optimizer

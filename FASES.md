@@ -71,9 +71,9 @@ solo se hacen cuando él lo pide.
 
 ### Fase 7 — Finetuning de 135M y 360M
 - Full finetuning (100 % de parámetros, sin LoRA) con AMP + acumulación + checkpointing.
-- 135M: micro 8 × 2, lr 5e-5. 360M: micro 2 × 8, lr 3e-5. Ambos con 3 épocas.
+- 135M y 360M: micro 8 × 2, lr 5e-5 y 3e-5. Ambos con 2 épocas (D-030).
 - Mejor época por validación y guardado en `checkpoint_smollm2_135m_ft/` y `..._360m_ft/`.
-- Reanudación automática si el checkpoint ya existe.
+- Reanudación por época con `..._estado.json`; si la carpeta canónica existe se omite.
 - **Lista cuando:** las dos carpetas existen y su PPL de validación es menor que la del baseline.
 - **Estado:** escrita y probada con un modelo diminuto; pendiente de ejecutar en Colab.
 

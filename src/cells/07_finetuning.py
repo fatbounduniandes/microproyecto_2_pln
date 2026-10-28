@@ -3,14 +3,14 @@
 #
 # Ajustamos SmolLM2-135M y SmolLM2-360M con **full finetuning**: se actualizan el 100 % de los
 # parámetros, sin LoRA ni QLoRA. Para que quepan en la GPU usamos la tríada del anexo: precisión
-# mixta, acumulación de gradientes y gradient checkpointing. Cada modelo se entrena 3 épocas y se
+# mixta, acumulación de gradientes y gradient checkpointing. Cada modelo se entrena 2 épocas y se
 # guarda la mejor época según la pérdida de validación.
 
 # %% [markdown]
 # Definimos los hiperparámetros de cada finetuning.
 
 # %%
-EPOCAS_FT = 3
+EPOCAS_FT = 2
 CALENTAMIENTO_FT = 50
 WEIGHT_DECAY_FT = 0.01
 
@@ -29,8 +29,8 @@ config_360m = {
     "modelo": SMOL_360M,
     "revision": SMOL_360M_REVISION,
     "lr": 3e-5,
-    "micro_batch": 2,
-    "grad_accum": 8,
+    "micro_batch": 8,
+    "grad_accum": 2,
     "carpeta": "checkpoint_smollm2_360m_ft",
 }
 
@@ -45,15 +45,60 @@ print("Epocas:", EPOCAS_FT)
 def ajustar_modelo(config):
     ruta_guardado = os.path.join(DRIVE_DIR, config["carpeta"])
     ruta_temporal = ruta_guardado + "_mejor"
+    ruta_estado = ruta_guardado + "_estado.json"
 
     if os.path.exists(ruta_guardado):
         print(config["nombre"], ": ya existe el checkpoint, se omite el entrenamiento")
-        return None
+        historial = {"train": [], "val": []}
+        mejor_val = float("nan")
+        mejor_epoca = 0
+        if os.path.exists(ruta_estado):
+            archivo = open(ruta_estado, "r")
+            guardado = json.load(archivo)
+            archivo.close()
+            historial = guardado["historial"]
+            mejor_val = guardado["mejor_val"]
+            mejor_epoca = guardado["mejor_epoca"]
+            print("historial recuperado de", ruta_estado)
+        return {
+            "historial": historial,
+            "mejor_val": mejor_val,
+            "mejor_epoca": mejor_epoca,
+            "segundos": 0,
+            "omitido": True,
+        }
 
-    modelo = AutoModelForCausalLM.from_pretrained(
-        config["modelo"],
-        revision=config["revision"],
-    )
+    historial = {"train": [], "val": []}
+    mejor_val = float("inf")
+    mejor_epoca = 0
+    epoca_inicio = 0
+
+    if os.path.exists(ruta_estado):
+        archivo = open(ruta_estado, "r")
+        guardado = json.load(archivo)
+        archivo.close()
+        historial = guardado["historial"]
+        mejor_val = guardado["mejor_val"]
+        mejor_epoca = guardado["mejor_epoca"]
+        epoca_inicio = guardado["epoca_completada"]
+        print(config["nombre"], ": se retoma desde la epoca", epoca_inicio + 1)
+
+    if epoca_inicio == 0:
+        modelo = AutoModelForCausalLM.from_pretrained(
+            config["modelo"],
+            revision=config["revision"],
+        )
+    else:
+        ruta_ultima = ruta_guardado + "_epoca" + str(epoca_inicio)
+        if os.path.exists(ruta_ultima):
+            modelo = AutoModelForCausalLM.from_pretrained(ruta_ultima)
+            print(config["nombre"], ": pesos recuperados de", ruta_ultima)
+        else:
+            modelo = AutoModelForCausalLM.from_pretrained(
+                config["modelo"],
+                revision=config["revision"],
+            )
+
     modelo.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     modelo.config.use_cache = False
     modelo.to(DEVICE)
@@ -65,11 +110,8 @@ def ajustar_modelo(config):
     print(config["nombre"], "- parametros:", total_parametros)
 
     datos = TensorDataset(X_train)
-    generador = torch.Generator()
-    generador.manual_seed(SEED)
-    loader = DataLoader(datos, batch_size=config["micro_batch"], shuffle=True, generator=generador)
 
-    pasos_por_epoca = len(loader) // config["grad_accum"]
+    pasos_por_epoca = len(datos) // config["micro_batch"] // config["grad_accum"]
     pasos_totales = pasos_por_epoca * EPOCAS_FT
 
     optimizador = torch.optim.AdamW(
@@ -90,12 +132,13 @@ def ajustar_modelo(config):
 
     planificador = torch.optim.lr_scheduler.LambdaLR(optimizador, tasa)
 
-    historial = {"train": [], "val": []}
-    mejor_val = float("inf")
-    mejor_epoca = 0
     inicio_modelo = time.time()
 
-    for epoca in range(EPOCAS_FT):
+    for epoca_num in range(epoca_inicio, EPOCAS_FT):
+        epoca = epoca_num + 1
+        generador = torch.Generator()
+        generador.manual_seed(SEED + epoca)
+        loader = DataLoader(datos, batch_size=config["micro_batch"], shuffle=True, generator=generador)
         modelo.train()
         suma = 0.0
         ejemplos = 0
@@ -151,12 +194,19 @@ def ajustar_modelo(config):
 
         if perdida_val < mejor_val:
             mejor_val = perdida_val
-            mejor_epoca = epoca + 1
+            mejor_epoca = epoca
             modelo.save_pretrained(ruta_temporal)
             print("  mejor hasta ahora, guardado en", ruta_temporal)
 
+        ruta_epoca = ruta_guardado + "_epoca" + str(epoca)
+        modelo.save_pretrained(ruta_epoca)
+
+        archivo = open(ruta_estado, "w")
+        json.dump({"epoca_completada": epoca, "historial": historial, "mejor_val": mejor_val, "mejor_epoca": mejor_epoca}, archivo)
+        archivo.close()
+
         print(config["nombre"],
-              "- epoca", epoca + 1,
+              "- epoca", epoca,
               "| train:", round(perdida_train, 3),
               "| val:", round(perdida_val, 3),
               "| lr:", round(planificador.get_last_lr()[0], 8),
@@ -181,6 +231,11 @@ def ajustar_modelo(config):
     if os.path.exists(ruta_temporal):
         shutil.rmtree(ruta_temporal)
 
+    for epoca_borrar in range(1, EPOCAS_FT + 1):
+        ruta_borrar = ruta_guardado + "_epoca" + str(epoca_borrar)
+        if os.path.exists(ruta_borrar):
+            shutil.rmtree(ruta_borrar)
+
     del modelo
     liberar_vram_total()
 
@@ -189,6 +244,7 @@ def ajustar_modelo(config):
         "mejor_val": mejor_val,
         "mejor_epoca": mejor_epoca,
         "segundos": segundos,
+        "omitido": False,
     }
 
 # %% [markdown]
@@ -216,10 +272,10 @@ resultado_360m = ajustar_modelo(config_360m)
 # %%
 plt.figure(figsize=(7, 4))
 
-if resultado_135m is not None:
-    plt.plot(range(1, EPOCAS_FT + 1), resultado_135m["historial"]["val"], marker="o", label="135M val")
-if resultado_360m is not None:
-    plt.plot(range(1, EPOCAS_FT + 1), resultado_360m["historial"]["val"], marker="o", label="360M val")
+if len(resultado_135m["historial"]["val"]) > 0:
+    plt.plot(range(1, len(resultado_135m["historial"]["val"]) + 1), resultado_135m["historial"]["val"], marker="o", label="135M val")
+if len(resultado_360m["historial"]["val"]) > 0:
+    plt.plot(range(1, len(resultado_360m["historial"]["val"]) + 1), resultado_360m["historial"]["val"], marker="o", label="360M val")
 
 plt.title("Perdida de validacion durante el finetuning")
 plt.xlabel("epoca")
@@ -235,11 +291,10 @@ plt.show()
 resultados = [("SmolLM2-135M", resultado_135m), ("SmolLM2-360M", resultado_360m)]
 
 for nombre, resultado in resultados:
-    if resultado is None:
-        print(nombre, ": se cargo el checkpoint existente, sin historial de esta corrida")
-    else:
-        print(nombre,
-              "| mejor epoca:", resultado["mejor_epoca"],
-              "| val:", round(resultado["mejor_val"], 3),
-              "| PPL:", round(math.exp(resultado["mejor_val"]), 2),
-              "| minutos:", round(resultado["segundos"] / 60, 1))
+    if resultado["omitido"]:
+        print(nombre, ": se uso el checkpoint existente")
+    print(nombre,
+          "| mejor epoca:", resultado["mejor_epoca"],
+          "| val:", round(resultado["mejor_val"], 3),
+          "| PPL:", round(math.exp(resultado["mejor_val"]), 2),
+          "| minutos:", round(resultado["segundos"] / 60, 1))

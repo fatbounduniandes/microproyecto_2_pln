@@ -8,7 +8,7 @@ silencio: se marca como reemplazada y se agrega una nueva.
 - **Curso:** Modelos Avanzados para el Procesamiento de Lenguaje Natural (MAPLN) — Maestría en IA.
 - **Repositorio:** `fatbounduniandes/microproyecto_2_pln` (público desde 2026-10-24, ver D-017).
 - **Rama principal:** `main`.
-- **Última actualización de esta bitácora:** 2026-10-24.
+- **Última actualización de esta bitácora:** 2026-10-26.
 
 ---
 
@@ -337,6 +337,8 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   el valor del preentrenamiento.
 
 ### D-028 · 2026-10-25 · Épocas 10 / 3 / 3 en vez de 3 / 1 / 1
+
+> Reemplazada por D-030: se baja a 10 / 2 / 2 tras medir tiempos reales y la saturación en la época 2.
 - **Decisión:** el modelo desde cero entrena **10 épocas**; los dos finetunings, **3 cada uno**.
   La tabla §4 del enunciado sugiere ≈3 / 1 / 1, así que es una desviación consciente.
 - **Motivo:** con 2,75 M tokens por época el scratch queda en 0,28 tokens/parámetro por época; con
@@ -348,6 +350,8 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   empeora, el checkpoint entregado es el mejor, no el último.
 
 ### D-029 · 2026-10-25 · Detalles del finetuning
+
+> Reemplazada por D-030: épocas 2, micro 8 × 2 en ambos modelos y reanudación por época con `estado.json`.
 - **Decisión:** una sola función `ajustar_modelo(config)` para los dos modelos. 135M con micro 8 ×
   acumulación 2; 360M con micro 2 × acumulación 8. `weight_decay = 0.01`, warmup de 50 pasos y
   coseno hasta el 10 % del lr, 3 épocas.
@@ -360,6 +364,26 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   preentrenamiento; 0,1 habría frenado la adaptación al dominio.
 - **Consecuencia:** el checkpoint entregado es el de mejor validación, no necesariamente el de la
   última época.
+
+### D-030 · 2026-10-26 · Épocas 10 / 2 / 2, micro 8 × 2 y reanudación por época
+- **Decisión:** el scratch queda en **10 épocas**; los dos finetunings bajan a **2 épocas**.
+  Ambos finetunings usan micro 8 × acumulación 2 (batch efectivo 16). `weight_decay = 0.01`,
+  warmup de 50 pasos y coseno hasta el 10 % del lr.
+- **Motivo:** el 135M saturó en la época 2 (val 1,575) y empeoró en la 3 (1,578); la tercera
+  época no aporta. El 360M con micro 2 × 8 iba a 1.972 s por época (99 min las 3); con micro 8
+  cabe igual (el 135M pico 4,88 GB de 22 GB) y baja a ~15–16 min por época. Menos tiempo
+  también reduce el riesgo de desconexión en Colab.
+- **Reanudación:** §6 salta si `checkpoint_scratch.pt` existe y recupera
+  `historial_scratch.json` para graficar. §7 guarda checkpoint por época
+  (`..._epoca1`, `..._epoca2`), `..._mejor` cuando mejora y `..._estado.json` con época
+  completada, historial, mejor val y mejor época; al reiniciar retoma desde la última época
+  guardada con optimizador fresco (D-007: sin estados de optimizador). Al terminar borra los
+  `..._epocaN` y `..._mejor` y deja solo la carpeta canónica más el `estado.json`.
+- **Alternativas descartadas:** mantener 3 épocas (una hora extra sin mejora esperada); micro
+  2 × 8 en 360M (lento sin necesidad en L4 de 22 GB); reanudar con estados de optimizador
+  (complejidad alta para 2 épocas).
+- **Consecuencia:** corrida completa ~50–60 min en L4 (10 + 16 + 30–35). El checkpoint entregado
+  sigue siendo el de mejor validación.
 
 ---
 
