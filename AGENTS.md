@@ -385,6 +385,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** corrida completa ~50–60 min en L4 (10 + 16 + 30–35). El checkpoint entregado
   sigue siendo el de mejor validación.
 
+### D-031 · 2026-10-28 · Sección 8 y dos arreglos del anexo
+- **Decisión:** §8 con `generar_texto()` propio (temperatura 0,7, top-k 50), `calcular_ppl()`
+  acumulando por token y `evaluar_ast()` sobre 200 ejemplos (semilla 7, prompt de 64 tokens,
+  128 nuevos, lotes de 20, corte de última línea). PPL sobre los 1.365 bloques de prueba.
+  Recorrido de las 5 configuraciones con un modelo en VRAM a la vez. Dos arreglos: (1)
+  `liberar_vram_total()` suma `ipc_collect()` y `reset_peak_memory_stats()` como pide el
+  anexo §5; (2) pasos del scheduler con `math.ceil` en vez de división entera (673 reales,
+  no 672).
+- **Motivo:** el prompt fijo de 64 permite generar en lotes sin padding; 128 tokens es el
+  equilibrio entre exigir sintaxis y no alargar la corrida (~20–25 min la §8). El VRAM pico
+  reportado arrastraba el pico del modelo anterior sin el reset.
+- **Consecuencia:** `generar_texto()` se reutiliza en la §9. La tabla final trae PPL, AST %,
+  parámetros y tiempo por modelo.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)

@@ -111,7 +111,7 @@ def ajustar_modelo(config):
 
     datos = TensorDataset(X_train)
 
-    pasos_por_epoca = len(datos) // config["micro_batch"] // config["grad_accum"]
+    pasos_por_epoca = math.ceil(len(datos) / config["micro_batch"] / config["grad_accum"])
     pasos_totales = pasos_por_epoca * EPOCAS_FT
 
     optimizador = torch.optim.AdamW(

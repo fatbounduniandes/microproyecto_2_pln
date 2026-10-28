@@ -78,10 +78,11 @@ solo se hacen cuando él lo pide.
 - **Estado:** escrita y probada con un modelo diminuto; pendiente de ejecutar en Colab.
 
 ### Fase 8 — Evaluación y comparación
-- Perplejidad global de las 5 configuraciones.
-- Validez sintáctica con `ast` en 200 ejemplos.
-- Tabla y gráficas comparativas.
+- Perplejidad global de las 5 configuraciones (acumulada por token, sin promediar por lote).
+- Validez sintáctica con `ast` en 200 ejemplos (semilla 7, prompt 64, 128 nuevos, corte de última línea).
+- `generar_texto()` propio con temperatura 0,7 y top-k 50; tabla y gráficas comparativas.
 - **Lista cuando:** la tabla queda completa con las 5 filas y ambas métricas.
+- **Estado:** escrita y verificada en sintaxis; pendiente de ejecutar en Colab.
 
 ### Fase 9 — Generación de ejemplos
 - Bucle autorregresivo propio (sin `model.generate()`).
