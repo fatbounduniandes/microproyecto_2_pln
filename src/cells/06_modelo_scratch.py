@@ -7,7 +7,8 @@
 # y se entrena desde pesos aleatorios.
 #
 # Usamos 10 épocas en vez de las 3 que sugiere la tabla del enunciado: con 2,75 M tokens por
-# época el modelo queda muy subentrenado, y la curva de validación dirá si aguanta. Para compensar
+# época el modelo probablemente quede con margen de mejora, y la curva de validación nos permitirá
+# ver ese comportamiento. Para compensar
 # subimos el dropout y guardamos el mejor modelo según validación.
 
 # %% [markdown]
@@ -33,7 +34,7 @@ print("Capas:", N_LAYER, "| Cabezas:", N_HEAD, "| Dimension:", N_EMBD)
 print("Dropout:", DROPOUT, "| Epocas:", EPOCAS, "| LR:", LR)
 
 # %% [markdown]
-# Implementamos la atención multi-cabeza con máscara causal.
+# Implementamos la atención multi-cabeza con máscara.
 
 # %%
 class CabezaAtencion(nn.Module):
@@ -129,21 +130,12 @@ class ModeloInicial(nn.Module):
         return logits, perdida
 
 # %% [markdown]
-# Creamos el modelo, contamos sus parámetros y probamos un forward con datos falsos.
+# Creamos el modelo en la GPU.
 
 # %%
 modelo_inicial = ModeloInicial().to(DEVICE)
 
-total_parametros = 0
-for parametro in modelo_inicial.parameters():
-    total_parametros += parametro.numel()
-
-prueba = torch.randint(0, VOCAB_SIZE, (2, CTX), device=DEVICE)
-logits, perdida = modelo_inicial(prueba, prueba)
-
-print("Parametros:", total_parametros)
-print("Logits:", tuple(logits.shape))
-print("Perdida inicial:", round(perdida.item(), 2))
+print("Modelo creado en:", DEVICE)
 
 # %% [markdown]
 # Preparamos los lotes de entrenamiento y de validación.
@@ -158,11 +150,11 @@ generador.manual_seed(SEED)
 train_loader = DataLoader(datos_train, batch_size=BATCH, shuffle=True, generator=generador)
 val_loader = DataLoader(datos_val, batch_size=BATCH, shuffle=False)
 
-print("Lotes de train:", len(train_loader))
-print("Lotes de validacion:", len(val_loader))
+print("train:", len(train_loader))
+print("validacion:", len(val_loader))
 
 # %% [markdown]
-# Configuramos el optimizador con calentamiento y decaimiento coseno del learning rate.
+# Configuramos el optimizador.
 
 # %%
 optimizer = torch.optim.AdamW(
@@ -271,7 +263,7 @@ if entreno_scratch:
 
     print("Mejor epoca:", mejor_epoca, "| mejor val:", round(mejor_val, 3))
 else:
-    print("se uso el checkpoint de Drive, mejor epoca:", mejor_epoca)
+    print("Cargado desde Drive, mejor epoca:", mejor_epoca)
 
 # %% [markdown]
 # Graficamos las curvas de pérdida para ver si hay sobreajuste.
@@ -288,7 +280,7 @@ if len(historial["val"]) > 0:
     plt.grid(alpha=0.3)
     plt.show()
 else:
-    print("sin historial en esta corrida, no hay curva para graficar")
+    print("Error no hay data para la grafica")
 
 # %% [markdown]
 # Guardamos el mejor modelo en Drive con su historial y liberamos la memoria de la GPU.

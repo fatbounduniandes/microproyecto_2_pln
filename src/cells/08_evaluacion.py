@@ -1,12 +1,20 @@
 # %% [markdown]
 # ## 8. Evaluación y comparación
 #
-# Medimos las cinco configuraciones con la misma vara: perplejidad global sobre los 1.365 bloques
+# Medimos las cinco configuraciones con el mismo tokenizador: perplejidad global sobre los 1.365 bloques
 # de prueba y validez sintáctica con `ast` sobre 200 ejemplos. Los modelos base se evalúan sin
 # entrenar, tal como lo pide el enunciado, y cada modelo se carga solo mientras se mide.
 
 # %% [markdown]
 # Definimos los hiperparámetros de la evaluación.
+#
+# Evaluamos 200 ejemplos porque es lo que pide el enunciado, y los elegimos con la semilla 7
+# para que la submuestra sea reproducible y distinta del split. El prompt fijo de 64 tokens
+# permite generar en lotes sin padding y son unas 5 líneas de contexto. Generamos 128 tokens
+# nuevos porque ahí cabe una función completa. La temperatura de 0,7 con top-k de 50 da variedad
+# sin disparates. Los lotes de 8 para PPL y de 20 para generación caben en los bloques de 256
+# incluso en el 360M. La PPL se mide sobre los 1.365 bloques que salen de los 800 archivos de
+# prueba.
 
 # %%
 N_AST = 200
@@ -29,16 +37,28 @@ print("Temperatura:", TEMP, "| top-k:", TOP_K)
 def generar_texto(modelo, inicio, nuevos, temperatura, top_k):
     modelo.eval()
     ids = inicio.clone()
+    es_scratch = isinstance(modelo, ModeloInicial)
     with torch.no_grad():
+        pasado = None
         for paso in range(nuevos):
-            entrada = ids[:, -CTX:]
-            with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-                salida = modelo(entrada)
-            if isinstance(salida, tuple):
+            if es_scratch:
+                entrada = ids[:, -CTX:]
+                with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
+                    salida = modelo(entrada)
                 logits = salida[0]
             else:
-                logits = salida.logits
-            ultimos = logits[:, -1, :] / temperatura
+                if paso == 0:
+                    entrada = ids[:, -CTX:]
+                    with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
+                        salida = modelo(entrada, use_cache=True)
+                    pasado = salida.past_key_values
+                    logits = salida.logits
+                else:
+                    with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
+                        salida = modelo(siguiente, past_key_values=pasado, use_cache=True)
+                    pasado = salida.past_key_values
+                    logits = salida.logits
+            ultimos = logits[:, -1, :].float() / temperatura
             if top_k > 0:
                 valores, indices = torch.topk(ultimos, top_k)
                 minimo = valores[:, -1].unsqueeze(1)
@@ -141,6 +161,9 @@ for nombre in nombres:
         modelo = AutoModelForCausalLM.from_pretrained(ruta)
         modelo.to(DEVICE)
 
+    if nombre != "scratch":
+        modelo.config.use_cache = True
+
     total_parametros = 0
     for parametro in modelo.parameters():
         total_parametros += parametro.numel()
@@ -188,7 +211,7 @@ plt.show()
 # %%
 plt.figure(figsize=(7, 4))
 plt.bar(nombres, porcentajes)
-plt.title("Codigo sintacticamente valido por configuracion")
+plt.title("Codigo valido por configuracion")
 plt.ylabel("% valido")
 plt.xticks(rotation=15)
 plt.grid(axis="y", alpha=0.3)

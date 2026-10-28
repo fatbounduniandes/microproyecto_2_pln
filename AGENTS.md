@@ -399,6 +399,19 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** `generar_texto()` se reutiliza en la §9. La tabla final trae PPL, AST %,
   parámetros y tiempo por modelo.
 
+### D-032 · 2026-10-28 · Textos de Jean, sin forward falso y caché KV en evaluación
+- **Decisión:** se portan a `src/cells/` las 9 correcciones de redacción de Jean (con typos
+  corregidos: probablemente, permitirá, mismo). Se elimina la celda de forward con datos falsos
+  de la §6: queda solo la creación del modelo. §7 y §8 llevan markdown con el porqué de cada
+  hiperparámetro. `generar_texto()` usa caché KV (`past_key_values`) en los modelos HF con
+  `use_cache = True` al evaluarlos, y muestrea en fp32; el scratch conserva forward completo.
+- **Motivo:** el notebook es generado (D-006): lo editado a mano en Colab se pierde al regenerar.
+  La caché KV baja la §8 de ~63 min a ~10–14 min porque cada token deja de reprocesar todo el
+  contexto; no es `generate()`, se sigue tomando `logits[:, -1, :]` a mano.
+- **Consecuencia:** `generar_texto()` se reutiliza en la §9. La PPL y el AST pueden moverse
+  centésimas frente a la corrida anterior por el cambio de ruta de cómputo; el notebook queda
+  consistente consigo mismo.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)

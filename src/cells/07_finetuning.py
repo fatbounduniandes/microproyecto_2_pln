@@ -8,6 +8,17 @@
 
 # %% [markdown]
 # Definimos los hiperparámetros de cada finetuning.
+#
+# Usamos los learning rate que sugiere la tabla del enunciado: 5e-5 para el 135M y 3e-5 para el
+# 360M, porque con solo 2 épocas no conviene mover mucho los pesos que ya trae el
+# preentrenamiento. Entrenamos 2 épocas porque el 135M pasó de 1,594 a 1,580 y la tercera ya
+# subía a 1,578, y el 360M pasó de 1,383 a 1,376 y casi no mejoraba. El micro-batch de 8 con
+# acumulación de 2 da el batch efectivo de 16 que pide el enunciado, y en la L4 sobra VRAM:
+# el 135M marcó 4,88 GB y el 360M 8,44 GB de 22 GB. Con el micro-batch de 2 que sugiere el
+# anexo el 360M tardaba 1.972 segundos por época y con 8 tarda unos 590. El weight decay de
+# 0,01 es una regularización suave, porque 0,1 es la del preentrenamiento y aquí frenaría la
+# adaptación al dominio. El calentamiento de 50 pasos es el 7 % de los 673 pasos por época.
+# El gradient checkpointing con `use_cache` en `False` es lo que exige el anexo técnico.
 
 # %%
 EPOCAS_FT = 2
@@ -48,7 +59,7 @@ def ajustar_modelo(config):
     ruta_estado = ruta_guardado + "_estado.json"
 
     if os.path.exists(ruta_guardado):
-        print(config["nombre"], ": ya existe el checkpoint, se omite el entrenamiento")
+        print(config["nombre"], ": ya hay checkpoint, no se entrena el modelo")
         historial = {"train": [], "val": []}
         mejor_val = float("nan")
         mejor_epoca = 0
