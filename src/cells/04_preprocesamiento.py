@@ -11,11 +11,15 @@
 
 # %%
 tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_ID, revision=SMOL_135M_REVISION)
+tokenizer_360 = AutoTokenizer.from_pretrained(SMOL_360M, revision=SMOL_360M_REVISION)
 
 print("Tokenizador:", TOKENIZER_ID)
 print("Vocabulario:", len(tokenizer))
 print("Token de fin:", tokenizer.eos_token, "-", tokenizer.eos_token_id)
 print("Revision:", SMOL_135M_REVISION)
+print("Vocabularios iguales:", tokenizer.get_vocab() == tokenizer_360.get_vocab())
+
+del tokenizer_360
 
 # %% [markdown]
 # Filtramos el stream y nos quedamos con los 8.000 primeros archivos del rango.
@@ -45,16 +49,19 @@ else:
 # %%
 ids_por_texto = []
 total_tokens = 0
+total_caracteres = 0
 
 for texto in textos:
     ids = tokenizer.encode(texto, add_special_tokens=False)
     ids.append(tokenizer.eos_token_id)
     ids_por_texto.append(ids)
     total_tokens += len(ids)
+    total_caracteres += len(texto)
 
 print("Archivos tokenizados:", len(ids_por_texto))
 print("Tokens en total:", total_tokens)
 print("Promedio por archivo:", round(total_tokens / len(ids_por_texto), 1))
+print("Caracteres por token:", round(total_caracteres / total_tokens, 2))
 
 # %% [markdown]
 # Mostramos cómo se ve un archivo después de tokenizarlo.

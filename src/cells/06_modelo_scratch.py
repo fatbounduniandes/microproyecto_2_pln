@@ -147,7 +147,7 @@ datos_val = TensorDataset(X_val)
 generador = torch.Generator()
 generador.manual_seed(SEED)
 
-train_loader = DataLoader(datos_train, batch_size=BATCH, shuffle=True, generator=generador)
+train_loader = DataLoader(datos_train, batch_size=BATCH, shuffle=True, generator=generador, drop_last=True)
 val_loader = DataLoader(datos_val, batch_size=BATCH, shuffle=False)
 
 print("train:", len(train_loader))
@@ -211,6 +211,18 @@ if entreno_scratch == False:
         print("historial recuperado de", ruta_historial_scratch)
 
 if entreno_scratch:
+    modelo_inicial.eval()
+    suma0 = 0.0
+    ejemplos0 = 0
+    with torch.no_grad():
+        for (lote,) in val_loader:
+            lote = lote.to(DEVICE)
+            with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
+                _, perdida = modelo_inicial(lote, lote)
+            suma0 += perdida.item() * lote.size(0)
+            ejemplos0 += lote.size(0)
+    print("val inicial:", round(suma0 / ejemplos0, 3))
+
     for epoca in range(EPOCAS):
         modelo_inicial.train()
         suma = 0.0

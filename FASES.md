@@ -79,17 +79,20 @@ solo se hacen cuando él lo pide.
 
 ### Fase 8 — Evaluación y comparación
 - Perplejidad global de las 5 configuraciones (acumulada por token, sin promediar por lote).
-- Validez sintáctica con `ast` en 200 ejemplos (semilla 7, prompt 64, 128 nuevos, corte de última línea).
-- `generar_texto()` propio con temperatura 0,7, top-k 50 y semilla fija por modelo; tabla y gráficas comparativas.
-- **Lista cuando:** la tabla queda completa con las 5 filas y ambas métricas, con AST reproducible.
-- **Estado:** reescrita con muestreo sembrado; pendiente de re-ejecutar en Colab.
+- Validez sintáctica con `ast` sobre prompt + continuación (semilla 7, prompt 64, 128 nuevos,
+  descarte de última línea solo si no hubo EOS).
+- Techo de referencia con la continuación real + intervalo de Wilson al 95 %.
+- `generar_texto()` propio con temperatura 0,7, top-k 50 y semilla por bloque; gráficas con
+  escala log y barras de error.
+- **Lista cuando:** la tabla queda completa con las 5 filas, techo e IC95.
+- **Estado:** reescrita con el protocolo adoptado; pendiente de la corrida limpia.
 
 ### Fase 9 — Generación de ejemplos
 - Bucle autorregresivo propio (sin `model.generate()`), reutilizando `generar_texto()`.
-- 3 prompts fijos de prueba, mismos para scratch, 135M FT y 360M FT, con semilla por ejemplo.
+- 3 prompts escritos a mano (`def`, imports + `def`, `class`), mismos para scratch, 135M FT y 360M FT.
 - 9 ejemplos impresos + tabla de tokens generados y marca de tope de 128.
-- **Lista cuando:** se ven los 9 ejemplos generados con su modelo y la tabla de largos.
-- **Estado:** escrita y verificada en sintaxis; pendiente de ejecutar en Colab.
+- **Lista cuando:** se ven los 9 ejemplos de código limpio con su modelo y la tabla de largos.
+- **Estado:** reescrita con prompts manuales; pendiente de la corrida limpia.
 
 ### Fase 10 — Conclusiones
 - Análisis de resultados, tamaño del modelo, límites sintácticos y aprendizajes.

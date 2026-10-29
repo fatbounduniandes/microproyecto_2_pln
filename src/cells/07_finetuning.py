@@ -19,6 +19,7 @@
 # 0,01 es una regularización suave, porque 0,1 es la del preentrenamiento y aquí frenaría la
 # adaptación al dominio. El calentamiento de 50 pasos es el 7 % de los 673 pasos por época.
 # El gradient checkpointing con `use_cache` en `False` es lo que exige el anexo técnico.
+# Guardamos el tokenizador junto a cada checkpoint e imprimimos el porcentaje entrenable.
 
 # %%
 EPOCAS_FT = 2
@@ -115,10 +116,14 @@ def ajustar_modelo(config):
     modelo.to(DEVICE)
 
     total_parametros = 0
+    entrenables = 0
     for parametro in modelo.parameters():
         total_parametros += parametro.numel()
+        if parametro.requires_grad:
+            entrenables += parametro.numel()
 
     print(config["nombre"], "- parametros:", total_parametros)
+    print(config["nombre"], "- entrenables:", round(entrenables / total_parametros * 100, 1), "%")
 
     datos = TensorDataset(X_train)
 
@@ -237,6 +242,7 @@ def ajustar_modelo(config):
         modelo.to(DEVICE)
 
     modelo.save_pretrained(ruta_guardado)
+    tokenizer.save_pretrained(ruta_guardado)
     print(config["nombre"], ": checkpoint final en", ruta_guardado)
 
     if os.path.exists(ruta_temporal):

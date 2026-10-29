@@ -6,22 +6,23 @@
 # y por ejemplo, para que la comparación sea justa y reproducible.
 
 # %% [markdown]
-# Elegimos 3 archivos de prueba como prompts y mostramos su texto.
+# Definimos 3 prompts de código limpio, iguales para los tres modelos.
 
 # %%
-indices_ejemplos = [0, 50, 100]
-prompts_ejemplos = []
+prompts_ejemplos = [
+    "def fibonacci(n):\n    ",
+    "import os\nimport json\n\n\ndef load_config(path):\n    ",
+    "class Stack(object):\n\n    def __init__(self):\n        ",
+]
 
-for j in indices_ejemplos:
-    ids = tokenizer.encode(textos_test[j], add_special_tokens=False)[:LARGO_PROMPT]
-    while len(ids) < LARGO_PROMPT:
-        ids.append(tokenizer.eos_token_id)
-    prompts_ejemplos.append(ids)
+ids_ejemplos = []
+for texto_prompt in prompts_ejemplos:
+    ids = tokenizer.encode(texto_prompt, add_special_tokens=False)
+    ids_ejemplos.append(ids)
 
 for k in range(len(prompts_ejemplos)):
     print("Prompt", k + 1, ":")
-    print(tokenizer.decode(prompts_ejemplos[k]))
-    print()
+    print(prompts_ejemplos[k])
 
 # %% [markdown]
 # Generamos 3 continuaciones con el modelo desde cero.
@@ -34,13 +35,13 @@ modelo.load_state_dict(torch.load(ruta, map_location=DEVICE))
 ejemplos_scratch = []
 largos_scratch = []
 
-for p in range(len(prompts_ejemplos)):
-    entrada = torch.tensor([prompts_ejemplos[p]], dtype=torch.long, device=DEVICE)
-    generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + p)
+for p in range(len(ids_ejemplos)):
+    entrada = torch.tensor([ids_ejemplos[p]], dtype=torch.long, device=DEVICE)
+    generados, fin = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + p)
     texto = tokenizer.decode(generados[0].tolist())
     ejemplos_scratch.append(texto)
-    largos_scratch.append(generados.size(1) - LARGO_PROMPT)
-    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - LARGO_PROMPT)
+    largos_scratch.append(generados.size(1) - len(ids_ejemplos[p]))
+    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - len(ids_ejemplos[p]))
     print(texto)
     print()
 
@@ -59,13 +60,13 @@ modelo.config.use_cache = True
 ejemplos_135m = []
 largos_135m = []
 
-for p in range(len(prompts_ejemplos)):
-    entrada = torch.tensor([prompts_ejemplos[p]], dtype=torch.long, device=DEVICE)
-    generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + 10 + p)
+for p in range(len(ids_ejemplos)):
+    entrada = torch.tensor([ids_ejemplos[p]], dtype=torch.long, device=DEVICE)
+    generados, fin = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + 10 + p)
     texto = tokenizer.decode(generados[0].tolist())
     ejemplos_135m.append(texto)
-    largos_135m.append(generados.size(1) - LARGO_PROMPT)
-    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - LARGO_PROMPT)
+    largos_135m.append(generados.size(1) - len(ids_ejemplos[p]))
+    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - len(ids_ejemplos[p]))
     print(texto)
     print()
 
@@ -84,13 +85,13 @@ modelo.config.use_cache = True
 ejemplos_360m = []
 largos_360m = []
 
-for p in range(len(prompts_ejemplos)):
-    entrada = torch.tensor([prompts_ejemplos[p]], dtype=torch.long, device=DEVICE)
-    generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + 20 + p)
+for p in range(len(ids_ejemplos)):
+    entrada = torch.tensor([ids_ejemplos[p]], dtype=torch.long, device=DEVICE)
+    generados, fin = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, SEED + 20 + p)
     texto = tokenizer.decode(generados[0].tolist())
     ejemplos_360m.append(texto)
-    largos_360m.append(generados.size(1) - LARGO_PROMPT)
-    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - LARGO_PROMPT)
+    largos_360m.append(generados.size(1) - len(ids_ejemplos[p]))
+    print("Ejemplo", p + 1, "| tokens nuevos:", generados.size(1) - len(ids_ejemplos[p]))
     print(texto)
     print()
 

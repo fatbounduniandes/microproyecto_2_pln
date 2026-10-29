@@ -289,6 +289,30 @@ plt.show()
 print("Para 8.000 utiles hay que revisar cerca de", esperado, "archivos")
 
 # %% [markdown]
+# Medimos cuántos archivos de la muestra son Python válido y cuántos traen sintaxis de Python 2.
+
+# %%
+validos_muestra = 0
+con_print_viejo = 0
+con_except_viejo = 0
+
+for e in muestra:
+    codigo = e["content"]
+    try:
+        ast.parse(codigo)
+        validos_muestra += 1
+    except SyntaxError:
+        pass
+    if "print " in codigo:
+        con_print_viejo += 1
+    if ", e:" in codigo:
+        con_except_viejo += 1
+
+print("Archivos validos con ast:", validos_muestra, "de", len(muestra))
+print("Con posible print de Python 2:", con_print_viejo)
+print("Con posible except de Python 2:", con_except_viejo)
+
+# %% [markdown]
 # ### Conclusiones de la exploración
 #
 # **Solo 2 de cada 10 archivos sirven.** De los 2.000 que revisamos, 399 (19,9 %) caen entre
@@ -321,7 +345,9 @@ print("Para 8.000 utiles hay que revisar cerca de", esperado, "archivos")
 # 2.000 archivos vienen de 1.855 repos distintos (máximo 5 de un mismo repo), así que el split
 # aleatorio no debería mezclar el mismo proyecto entre train y test. Las licencias son en su
 # mayoría permisivas (apache 421, mit 366, bsd 347), con algo de copyleft (gpl-3 347, agpl-3 186);
-# como los bloques conservan las cabeceras, el modelo también aprende a emitirlas.
+# como los bloques conservan las cabeceras, el modelo también aprende a emitirlas. Medimos además
+# cuántos archivos parsean con `ast` y cuántos traen señales de Python 2, porque eso pone el techo
+# de lo que la métrica de validez de la sección 8 puede llegar a medir.
 #
 # En volumen, los 8.000 archivos filtrados dieron 3.460.082 tokens, que se empacan en 13.514
 # bloques de 256. Eso es lo que alimenta el entrenamiento de la sección 6.

@@ -40,6 +40,7 @@ def generar_texto(modelo, inicio, nuevos, temperatura, top_k, semilla):
     gen = torch.Generator(device=DEVICE)
     gen.manual_seed(semilla)
     es_scratch = isinstance(modelo, ModeloInicial)
+    termino_eos = False
     with torch.no_grad():
         pasado = None
         for paso in range(nuevos):
@@ -70,8 +71,9 @@ def generar_texto(modelo, inicio, nuevos, temperatura, top_k, semilla):
             siguiente = torch.multinomial(probs, num_samples=1, generator=gen)
             ids = torch.cat([ids, siguiente], dim=1)
             if (siguiente == tokenizer.eos_token_id).all():
+                termino_eos = True
                 break
-    return ids
+    return ids, termino_eos
 
 # %% [markdown]
 # Calculamos la perplejidad global acumulando por token.
@@ -97,7 +99,31 @@ def calcular_ppl(modelo, datos, lote_eval):
     return math.exp(suma / total)
 
 # %% [markdown]
-# Medimos la validez sintáctica generando continuaciones y pasando `ast.parse`.
+# Definimos dos ayudas: la verificación sintáctica y el intervalo de Wilson al 95 %.
+
+# %%
+def es_valido(codigo):
+    try:
+        ast.parse(codigo)
+        return True
+    except SyntaxError:
+        return False
+    except ValueError:
+        return False
+    except RecursionError:
+        return False
+
+
+def intervalo_wilson(buenas, total):
+    z = 1.96
+    p = buenas / total
+    denominador = 1 + z * z / total
+    centro = (p + z * z / (2 * total)) / denominador
+    margen = z * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / denominador
+    return (centro - margen) * 100, (centro + margen) * 100
+
+# %% [markdown]
+# Medimos la validez sintáctica generando continuaciones y verificando prompt más continuación.
 
 # %%
 def evaluar_ast(modelo, textos_base, indices, lote_gen, semilla):
@@ -111,16 +137,14 @@ def evaluar_ast(modelo, textos_base, indices, lote_gen, semilla):
                 ids.append(tokenizer.eos_token_id)
             prompts.append(ids)
         entrada = torch.tensor(prompts, dtype=torch.long, device=DEVICE)
-        generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, semilla)
+        generados, termino_eos = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, semilla + inicio)
         for f in range(generados.size(0)):
             texto = tokenizer.decode(generados[f].tolist())
-            lineas = texto.split("\n")
-            recorte = "\n".join(lineas[:-1])
-            try:
-                ast.parse(recorte)
+            if termino_eos == False:
+                lineas = texto.split("\n")
+                texto = "\n".join(lineas[:-1])
+            if es_valido(texto):
                 validas += 1
-            except SyntaxError:
-                pass
     return validas
 
 # %% [markdown]
@@ -142,6 +166,9 @@ nombres = ["scratch", "135M base", "135M FT", "360M base", "360M FT"]
 ppls = []
 porcentajes = []
 parametros_lista = []
+validas_lista = []
+inf_lista = []
+sup_lista = []
 
 for indice in range(len(nombres)):
     nombre = nombres[indice]
@@ -174,14 +201,19 @@ for indice in range(len(nombres)):
 
     inicio = time.time()
     ppl = calcular_ppl(modelo, X_test, LOTE_EVAL)
-    validas = evaluar_ast(modelo, textos_test, indices_ast, LOTE_GEN, SEED + indice)
+    validas = evaluar_ast(modelo, textos_test, indices_ast, LOTE_GEN, SEED)
     pct = validas / N_AST * 100
+    inf, sup = intervalo_wilson(validas, N_AST)
 
     ppls.append(ppl)
     porcentajes.append(pct)
+    validas_lista.append(validas)
+    inf_lista.append(inf)
+    sup_lista.append(sup)
 
     print(nombre, "| params:", total_parametros, "| PPL:", round(ppl, 2),
-          "| AST:", round(pct, 1), "% | tiempo:", round(time.time() - inicio, 1), "s")
+          "| AST:", round(pct, 1), "% | IC95:", round(inf, 1), "-", round(sup, 1),
+          "| tiempo:", round(time.time() - inicio, 1), "s")
 
     del modelo
     liberar_vram_total()
@@ -189,12 +221,42 @@ for indice in range(len(nombres)):
 print("VRAM en uso:", round(torch.cuda.memory_allocated() / 1024**3, 2), "GB")
 
 # %% [markdown]
+# Medimos el techo de referencia con la continuación real de cada archivo.
+
+# %%
+validas_ref = 0
+completos_validos = 0
+
+for j in indices_ast:
+    ids_completos = tokenizer.encode(textos_test[j], add_special_tokens=False)
+    ids_prompt = ids_completos[:LARGO_PROMPT]
+    while len(ids_prompt) < LARGO_PROMPT:
+        ids_prompt.append(tokenizer.eos_token_id)
+    resto = ids_completos[LARGO_PROMPT:]
+    truncada = len(resto) > NUEVOS
+    texto = tokenizer.decode(ids_prompt + resto[:NUEVOS])
+    if truncada:
+        lineas = texto.split("\n")
+        texto = "\n".join(lineas[:-1])
+    if es_valido(texto):
+        validas_ref += 1
+    if es_valido(textos_test[j]):
+        completos_validos += 1
+
+techo_ref = validas_ref / N_AST * 100
+techo_completo = completos_validos / N_AST * 100
+
+print("Continuacion real con el mismo protocolo:", validas_ref, "de", N_AST, "=", round(techo_ref, 1), "%")
+print("Archivos completos validos:", completos_validos, "de", N_AST, "=", round(techo_completo, 1), "%")
+
+# %% [markdown]
 # Mostramos la tabla comparativa de las cinco configuraciones.
 
 # %%
-print("Configuracion | Parametros | PPL test | AST valido %")
+print("Configuracion | Parametros | PPL test | AST valido % | IC95")
 for i in range(len(nombres)):
-    print(nombres[i], "|", parametros_lista[i], "|", round(ppls[i], 2), "|", round(porcentajes[i], 1))
+    print(nombres[i], "|", parametros_lista[i], "|", round(ppls[i], 2), "|", round(porcentajes[i], 1),
+          "|", round(inf_lista[i], 1), "-", round(sup_lista[i], 1))
 
 # %% [markdown]
 # Graficamos las perplejidades para comparar los cinco modelos.
@@ -202,9 +264,12 @@ for i in range(len(nombres)):
 # %%
 plt.figure(figsize=(7, 4))
 plt.bar(nombres, ppls)
-plt.title("Perplejidad en prueba por configuracion")
+plt.yscale("log")
+plt.title("Perplejidad en prueba por configuracion (escala log)")
 plt.ylabel("PPL")
 plt.xticks(rotation=15)
+for i in range(len(nombres)):
+    plt.text(i, ppls[i] * 1.05, round(ppls[i], 2), ha="center")
 plt.grid(axis="y", alpha=0.3)
 plt.show()
 
@@ -212,11 +277,19 @@ plt.show()
 # Graficamos el porcentaje de código válido de cada configuración.
 
 # %%
+errores_bajo = []
+errores_alto = []
+for i in range(len(nombres)):
+    errores_bajo.append(porcentajes[i] - inf_lista[i])
+    errores_alto.append(sup_lista[i] - porcentajes[i])
+
 plt.figure(figsize=(7, 4))
-plt.bar(nombres, porcentajes)
-plt.title("Codigo valido por configuracion")
+plt.bar(nombres, porcentajes, yerr=[errores_bajo, errores_alto], capsize=5)
+plt.axhline(techo_ref, color="black", linestyle="--", label="continuacion real")
+plt.title("Codigo valido por configuracion (n = 200, IC95)")
 plt.ylabel("% valido")
 plt.xticks(rotation=15)
+plt.legend()
 plt.grid(axis="y", alpha=0.3)
 plt.show()
 

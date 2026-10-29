@@ -422,6 +422,20 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
 - **Consecuencia:** la PPL no cambia (no usa muestreo); el AST de la corrida anterior queda
   reemplazado por los valores con semilla. `generar_texto()` ya no se llama sin `semilla`.
 
+### D-034 · 2026-10-29 · Protocolo AST del compañero y corrida limpia desde cero
+- **Decisión:** se adopta el protocolo AST del notebook de referencia: `ast.parse(prompt +
+  continuación)`, techo con la continuación real truncada, intervalo de Wilson al 95 % y semilla
+  por bloque (`SEED + inicio`) igual para los cinco modelos. La última línea se descarta solo si
+  no hubo EOS. §9 usa 3 prompts escritos a mano (`def fibonacci`, `import os/json` + `def`,
+  `class Stack`). Además: §3 mide validez del corpus y señales de Python 2; §4 verifica
+  vocabularios iguales y caracteres por token; §6 evalúa val inicial y usa `drop_last=True`;
+  §7 imprime % entrenable y guarda el tokenizador. No se limpia el train ni se reentrena por
+  las licencias: el filtro 1.000–2.000 del §3.2 lo prohíbe en la práctica y el problema está en
+  el prompt, no en los pesos.
+- **Consecuencia:** corrida total limpia desde cero en L4 (~60 min): los checkpoints viejos se
+  borran de Drive y todo se regenera con este código. La §10 se escribe después, con los
+  números reales de esa corrida.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
