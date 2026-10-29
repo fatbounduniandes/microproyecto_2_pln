@@ -34,9 +34,11 @@ print("Temperatura:", TEMP, "| top-k:", TOP_K)
 # Implementamos el bucle autorregresivo propio con temperatura y top-k.
 
 # %%
-def generar_texto(modelo, inicio, nuevos, temperatura, top_k):
+def generar_texto(modelo, inicio, nuevos, temperatura, top_k, semilla):
     modelo.eval()
     ids = inicio.clone()
+    gen = torch.Generator(device=DEVICE)
+    gen.manual_seed(semilla)
     es_scratch = isinstance(modelo, ModeloInicial)
     with torch.no_grad():
         pasado = None
@@ -65,7 +67,7 @@ def generar_texto(modelo, inicio, nuevos, temperatura, top_k):
                 relleno = torch.tensor(float("-inf"), device=ultimos.device)
                 ultimos = torch.where(ultimos < minimo, relleno, ultimos)
             probs = F.softmax(ultimos, dim=-1)
-            siguiente = torch.multinomial(probs, num_samples=1)
+            siguiente = torch.multinomial(probs, num_samples=1, generator=gen)
             ids = torch.cat([ids, siguiente], dim=1)
             if (siguiente == tokenizer.eos_token_id).all():
                 break
@@ -98,7 +100,7 @@ def calcular_ppl(modelo, datos, lote_eval):
 # Medimos la validez sintáctica generando continuaciones y pasando `ast.parse`.
 
 # %%
-def evaluar_ast(modelo, textos_base, indices, lote_gen):
+def evaluar_ast(modelo, textos_base, indices, lote_gen, semilla):
     validas = 0
     for inicio in range(0, len(indices), lote_gen):
         grupo = indices[inicio:inicio + lote_gen]
@@ -109,7 +111,7 @@ def evaluar_ast(modelo, textos_base, indices, lote_gen):
                 ids.append(tokenizer.eos_token_id)
             prompts.append(ids)
         entrada = torch.tensor(prompts, dtype=torch.long, device=DEVICE)
-        generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K)
+        generados = generar_texto(modelo, entrada, NUEVOS, TEMP, TOP_K, semilla)
         for f in range(generados.size(0)):
             texto = tokenizer.decode(generados[f].tolist())
             lineas = texto.split("\n")
@@ -141,7 +143,8 @@ ppls = []
 porcentajes = []
 parametros_lista = []
 
-for nombre in nombres:
+for indice in range(len(nombres)):
+    nombre = nombres[indice]
     if nombre == "scratch":
         modelo = ModeloInicial().to(DEVICE)
         ruta = os.path.join(DRIVE_DIR, "checkpoint_scratch.pt")
@@ -171,7 +174,7 @@ for nombre in nombres:
 
     inicio = time.time()
     ppl = calcular_ppl(modelo, X_test, LOTE_EVAL)
-    validas = evaluar_ast(modelo, textos_test, indices_ast, LOTE_GEN)
+    validas = evaluar_ast(modelo, textos_test, indices_ast, LOTE_GEN, SEED + indice)
     pct = validas / N_AST * 100
 
     ppls.append(ppl)

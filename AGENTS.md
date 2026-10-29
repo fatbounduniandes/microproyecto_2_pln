@@ -412,6 +412,16 @@ Formato: `D-XXX · fecha · decisión · motivo · alternativas descartadas · c
   centésimas frente a la corrida anterior por el cambio de ruta de cómputo; el notebook queda
   consistente consigo mismo.
 
+### D-033 · 2026-10-29 · Muestreo con semilla y sección 9
+- **Decisión:** `generar_texto()` recibe `semilla` y crea `torch.Generator(device=DEVICE)` para
+  `torch.multinomial`; la §8 usa `SEED + indice` por modelo y la §9 usa `SEED + 10 * modelo + p`
+  por ejemplo. §9: 3 prompts fijos de prueba ([0, 50, 100]), mismos para scratch, 135M FT y
+  360M FT, con tabla de tokens generados y marca de tope de 128.
+- **Motivo:** sin semilla en el muestreo, dos corridas idénticas dan textos distintos y el AST
+  no es reproducible; el evaluador debe obtener nuestros mismos números.
+- **Consecuencia:** la PPL no cambia (no usa muestreo); el AST de la corrida anterior queda
+  reemplazado por los valores con semilla. `generar_texto()` ya no se llama sin `semilla`.
+
 ---
 
 ## 4. Reglas duras del proyecto (no negociables)
